@@ -40,29 +40,40 @@ export type OrderEmailInput = {
 const BRAND_NAME = "BRINKA Brinquedos";
 const BRAND_TAGLINE = "Brinquedos que a criança volta a pegar";
 const BRAND_TRACKING_URL =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://brinka.com.br";
+  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://brinkabrinquedos.shop";
 
-// Paleta brand
+// Paleta do e-mail — os mesmos tokens de app/loja.css, para o e-mail parecer a
+// loja e não um template genérico. Se a marca mudar de cor, mexe aqui e nas
+// variáveis do CSS; os três templates leem tudo daqui.
 const C = {
-  primary: "#1a1a1a",
-  dark: "#202020",
-  accent: "#b98a2e", // dourado
-  accentSoft: "#fff8e8",
-  accentBorder: "#f1d6a4",
-  green: "#14752d",
-  greenSoft: "#f1fff5",
-  greenBorder: "#c6edcf",
-  text: "#202020",
-  muted: "#777777",
-  mutedSoft: "#a7a7a7",
-  line: "#ececec",
-  lineSoft: "#f1f1f1",
-  bg: "#e7e7e7",
-  card: "#ffffff",
-  cardSoft: "#fafafa",
-  cardSofter: "#fbfbfb",
-  footerLine: "#373737",
+  primary: "#171310", // --ink
+  dark: "#171310",
+  accent: "#ff5a1f", // --brand-accent (laranja BRINKA)
+  accentDark: "#d9430c", // --accent-d, para borda/hover do botão
+  blue: "#0071d6", // azul do carrinho do logo — cor secundária da marca
+  blueSoft: "#eaf4ff",
+  accentSoft: "#fff1ea", // --accent-wash
+  accentBorder: "#ffd0ba",
+  green: "#047857",
+  greenSoft: "#ecfdf5",
+  greenBorder: "#a7f3d0",
+  text: "#2e2822",
+  muted: "#4b453e", // --ink-2
+  mutedSoft: "#8b8378", // --ink-3
+  line: "#e6e0d5", // --line
+  lineSoft: "#efeae1", // --bg-2
+  bg: "#f4f1ea", // --bg
+  card: "#ffffff", // --paper
+  cardSoft: "#faf8f4",
+  cardSofter: "#fdfcfa",
+  footerLine: "#3a332c",
 };
+
+// Logo da marca no cabeçalho. PNG de propósito: cliente de e-mail não lê webp.
+// Precisa de URL absoluta — Gmail e afins não resolvem caminho relativo.
+const brandHeader = () => `
+      <img src="${BRAND_TRACKING_URL}/brinka-logo.png" width="150" height="40" alt="${BRAND_NAME}"
+           style="display:block;margin:0 auto;width:150px;height:40px;border:0;outline:none;text-decoration:none;" />`;
 
 const formatBRL = (value: number) =>
   `R$ ${Number(value).toFixed(2).replace(".", ",")}`;
@@ -126,7 +137,7 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
 
   const trackingHref = `${BRAND_TRACKING_URL}/rastreio-de-pedido?codigo=${encodeURIComponent(order.orderCode)}`;
 
-  const subject = `Pedido confirmado · ${order.orderCode} · ${BRAND_NAME}`;
+  const subject = `🦖 ${firstName}, pagamento confirmado — pedido ${order.orderCode}`;
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -141,22 +152,33 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
   </div>
 
   <div style="max-width:600px;margin:0 auto;background:${C.card};">
-    <!-- top accent bar -->
-    <div style="background:${C.accent};height:5px;"></div>
-
-    <!-- header / logo -->
-    <div style="background:${C.card};padding:24px 32px 20px;text-align:center;border-bottom:1px solid ${C.lineSoft};">
-      <span style="display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.5px;color:${C.primary};">${BRAND_NAME}</span>
-      <p style="margin:4px 0 0;font-size:11px;color:${C.muted};letter-spacing:1.4px;text-transform:uppercase;">${BRAND_TAGLINE}</p>
+    <!-- Cabeçalho na cor da marca. Loja de brinquedo não combina com header
+         branco de banco: o laranja é a primeira coisa que a pessoa vê. -->
+    <div style="background:${C.accent};padding:26px 32px 22px;text-align:center;">
+      <div style="display:inline-block;background:${C.card};border-radius:18px;padding:12px 20px;">
+        ${brandHeader()}
+      </div>
+      <p style="margin:12px 0 0;font-size:11px;color:#ffe6d8;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;">${BRAND_TAGLINE}</p>
     </div>
+    <!-- Faixa listrada laranja/azul — as duas cores do logo, dando um ar de
+         fita de embalagem de presente. Feita com células de tabela porque
+         gradiente repetido não é confiável em cliente de e-mail. -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+      <tr>
+        ${Array.from({ length: 12 }, (_, i) => `<td height="7" style="height:7px;background:${i % 2 ? C.blue : C.accentDark};font-size:0;line-height:0;">&nbsp;</td>`).join("")}
+      </tr>
+    </table>
 
-    <!-- intro -->
-    <div style="background:${C.cardSofter};padding:22px 30px;text-align:center;border-bottom:1px solid ${C.line};">
-      <h1 style="margin:0 0 7px;font-size:19px;color:${C.primary};font-weight:700;line-height:1.25;">
-        Olá, ${escapeHtml(firstName)} — recebemos seu pedido <span style="color:${C.accent};">${escapeHtml(order.orderCode)}</span>.
+    <!-- Abertura: fala da criança, não do "cliente". É o que diferencia o
+         e-mail de uma loja de brinquedo de um recibo qualquer. -->
+    <div style="background:${C.cardSofter};padding:26px 30px 22px;text-align:center;border-bottom:1px solid ${C.line};">
+      <p style="margin:0 0 8px;font-size:34px;line-height:1;">🦖</p>
+      <h1 style="margin:0 0 8px;font-size:21px;color:${C.primary};font-weight:800;line-height:1.25;">
+        Deu certo, ${escapeHtml(firstName)}! O caminhão já está sendo separado.
       </h1>
-      <p style="margin:0;font-size:12px;color:${C.muted};line-height:1.45;">
-        O pagamento foi confirmado e o seu pedido já está em preparação. Use o código acima para acompanhar a entrega.
+      <p style="margin:0;font-size:13px;color:${C.muted};line-height:1.5;">
+        Pagamento confirmado e pedido <strong style="color:${C.accent};">${escapeHtml(order.orderCode)}</strong> na fila de embalagem.
+        Assim que sair para a entrega, a gente te avisa com o código de rastreio.
       </p>
     </div>
 
@@ -198,12 +220,12 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
               </p>
             </div>
 
-            <a href="${escapeHtml(trackingHref)}" style="display:block;background:${C.accent};color:${C.primary};text-decoration:none;padding:0 18px;border-radius:999px;font-size:14px;font-weight:800;line-height:54px;min-height:54px;box-shadow:0 8px 18px rgba(185,138,46,0.30);letter-spacing:0.4px;text-transform:uppercase;">
-              Acompanhar meu pedido
+            <a href="${escapeHtml(trackingHref)}" style="display:block;background:${C.accent};color:#ffffff;text-decoration:none;padding:0 18px;border-radius:999px;font-size:14px;font-weight:800;line-height:54px;min-height:54px;box-shadow:0 8px 18px rgba(255,90,31,0.32);letter-spacing:0.4px;text-transform:uppercase;">
+              Ver onde está meu caminhão
             </a>
 
             <p style="margin:10px 0 0;font-size:10px;color:${C.muted};line-height:1.32;">
-              O link abre a página de rastreio com o seu código já preenchido.
+              O link já abre com o seu código preenchido.
             </p>
           </div>
         </div>
@@ -257,9 +279,9 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
 
         <!-- warning band -->
         <div style="padding:0 24px 22px;background:${C.cardSoft};">
-          <div style="background:${C.accentSoft};border:1px solid ${C.accentBorder};border-radius:9px;padding:12px;text-align:center;">
-            <p style="margin:0;font-size:12px;color:#9a5b00;line-height:1.45;">
-              Em até 24 h enviamos um novo e-mail com o código de rastreio dos Correios assim que o pedido for despachado.
+          <div style="background:${C.accentSoft};border:1px solid ${C.accentBorder};border-radius:14px;padding:13px;text-align:center;">
+            <p style="margin:0;font-size:12px;color:${C.accentDark};line-height:1.45;font-weight:600;">
+              📦 Em até 24 h você recebe o código de rastreio dos Correios por e-mail.
             </p>
           </div>
         </div>
@@ -270,7 +292,8 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
     <div style="padding:0 32px 24px;">
       <div style="background:#f7f7f7;border-radius:10px;padding:13px 16px;text-align:center;border:1px solid #eeeeee;">
         <p style="margin:0;font-size:11px;color:${C.muted};line-height:1.55;">
-          Em caso de dúvidas, basta responder este e-mail. Nosso time de atendimento responde em horário comercial.
+          Deu algum problema ou ficou com dúvida? É só responder este e-mail —
+          tem gente de verdade do outro lado, em horário comercial.
         </p>
       </div>
     </div>
@@ -278,7 +301,7 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
     <!-- footer -->
     <div style="background:${C.dark};padding:28px 32px;text-align:center;">
       <div style="display:inline-block;background:#ffffff;border-radius:14px;padding:10px 16px;">
-        <span style="display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.5px;color:${C.primary};">${BRAND_NAME}</span>
+        ${brandHeader()}
       </div>
       <div style="width:42px;height:2px;background:${C.accent};margin:10px auto 14px;"></div>
       <p style="margin:0 0 14px;font-size:11px;color:${C.mutedSoft};line-height:1.45;">
@@ -310,8 +333,8 @@ export function renderShippedEmail(order: OrderEmailInput, trackingCode: string)
   <div style="max-width:600px;margin:0 auto;background:${C.card};">
     <div style="background:${C.accent};height:5px;"></div>
     <div style="background:${C.card};padding:24px 32px 20px;text-align:center;border-bottom:1px solid ${C.lineSoft};">
-      <span style="display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.5px;color:${C.primary};">${BRAND_NAME}</span>
-      <p style="margin:4px 0 0;font-size:11px;color:${C.muted};letter-spacing:1.4px;text-transform:uppercase;">${BRAND_TAGLINE}</p>
+      ${brandHeader()}
+      <p style="margin:9px 0 0;font-size:11px;color:${C.mutedSoft};letter-spacing:1.2px;text-transform:uppercase;">${BRAND_TAGLINE}</p>
     </div>
 
     <div style="background:${C.cardSofter};padding:26px 30px;text-align:center;border-bottom:1px solid ${C.line};">
@@ -347,7 +370,7 @@ export function renderShippedEmail(order: OrderEmailInput, trackingCode: string)
 
     <div style="background:${C.dark};padding:26px 32px;text-align:center;">
       <div style="display:inline-block;background:#ffffff;border-radius:14px;padding:9px 15px;">
-        <span style="display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.5px;color:${C.primary};">${BRAND_NAME}</span>
+        ${brandHeader()}
       </div>
       <p style="margin:12px 0 0;font-size:11px;color:${C.mutedSoft};line-height:1.45;">
         Churrasqueiras, facas, kits e presentes premium para quem ama a brasa.
@@ -401,8 +424,8 @@ export function renderAbandonedCartEmail(order: OrderEmailInput) {
   <div style="max-width:600px;margin:0 auto;background:${C.card};">
     <div style="background:${C.accent};height:5px;"></div>
     <div style="background:${C.card};padding:24px 32px 20px;text-align:center;border-bottom:1px solid ${C.lineSoft};">
-      <span style="display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.5px;color:${C.primary};">${BRAND_NAME}</span>
-      <p style="margin:4px 0 0;font-size:11px;color:${C.muted};letter-spacing:1.4px;text-transform:uppercase;">${BRAND_TAGLINE}</p>
+      ${brandHeader()}
+      <p style="margin:9px 0 0;font-size:11px;color:${C.mutedSoft};letter-spacing:1.2px;text-transform:uppercase;">${BRAND_TAGLINE}</p>
     </div>
 
     <div style="background:${C.cardSofter};padding:26px 30px;text-align:center;border-bottom:1px solid ${C.line};">
@@ -439,7 +462,7 @@ export function renderAbandonedCartEmail(order: OrderEmailInput) {
 
     <div style="background:${C.dark};padding:26px 32px;text-align:center;">
       <div style="display:inline-block;background:#ffffff;border-radius:14px;padding:9px 15px;">
-        <span style="display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:30px;font-weight:800;letter-spacing:-0.5px;color:${C.primary};">${BRAND_NAME}</span>
+        ${brandHeader()}
       </div>
       <p style="margin:12px 0 0;font-size:11px;color:${C.mutedSoft};line-height:1.45;">
         Churrasqueiras, facas, kits e presentes premium para quem ama a brasa.

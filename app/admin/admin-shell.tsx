@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Package, ShoppingBag, Waypoints, KeyRound } from "lucide-react"
+import { Package, ShoppingBag, Waypoints, KeyRound, Mail } from "lucide-react"
 import type { AdminOrder } from "@/lib/orders"
 import type { Catalog } from "@/lib/catalog"
 import { LogoutButton } from "./logout-button"
@@ -11,9 +11,10 @@ import { OrdersPanel } from "./orders-panel"
 import { ProductsPanel } from "./products-panel"
 import { RelayPanel } from "./relay-panel"
 import { SetupStatus } from "./setup-status"
+import { EmailPanel } from "./email-panel"
 
 type Modules = { orders: boolean; products: boolean; relay?: boolean }
-type Tab = "orders" | "products" | "relay" | "keys"
+type Tab = "orders" | "products" | "relay" | "email" | "keys"
 
 export function AdminShell({
   brand,
@@ -38,6 +39,7 @@ export function AdminShell({
     modules.orders ? ("orders" as const) : null,
     modules.products ? ("products" as const) : null,
     modules.relay ? ("relay" as const) : null,
+    "email" as const,
     "keys" as const,
   ].filter(Boolean) as Tab[]
 
@@ -85,6 +87,9 @@ export function AdminShell({
                 Relay
               </TabButton>
             )}
+            <TabButton active={tab === "email"} onClick={() => setTab("email")} icon={<Mail className="h-4 w-4" />}>
+              E-mail
+            </TabButton>
             <TabButton active={tab === "keys"} onClick={() => setTab("keys")} icon={<KeyRound className="h-4 w-4" />}>
               Chaves
             </TabButton>
@@ -96,6 +101,7 @@ export function AdminShell({
           <ProductsPanel initialCatalog={catalog} columns={columns} kvOk={kvOk} initialPending={pending} />
         )}
         {tab === "relay" && modules.relay && <RelayPanel />}
+        {tab === "email" && <EmailPanel />}
         {tab === "keys" && <SetupStatus />}
       </div>
     </div>

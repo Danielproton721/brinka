@@ -29,7 +29,7 @@ export async function GET() {
       desc: "Sem isto a loja não opera.",
       items: [
         { label: "Senha do painel admin", envs: ["ADMIN_PASSWORD"], set: has("ADMIN_PASSWORD"), level: "req", hint: "Libera o acesso a este painel." },
-        { label: "Domínio da loja", envs: ["NEXT_PUBLIC_APP_URL"], set: has("NEXT_PUBLIC_APP_URL"), level: "rec", hint: "Ex.: https://brinka.com.br — usado em links, e-mail e postback." },
+        { label: "Domínio da loja", envs: ["NEXT_PUBLIC_APP_URL"], set: has("NEXT_PUBLIC_APP_URL"), level: "rec", hint: "Ex.: https://brinkabrinquedos.shop — usado em links, e-mail e postback." },
       ],
     },
     {
@@ -55,7 +55,7 @@ export async function GET() {
       desc: "Sem isto o pedido é aprovado, mas o cliente não recebe o e-mail.",
       items: [
         { label: "Resend — API key", envs: ["RESEND_API_KEY"], set: has("RESEND_API_KEY"), level: "rec", hint: "Envia o e-mail de confirmação do pedido." },
-        { label: "Resend — remetente", envs: ["RESEND_FROM_EMAIL"], set: has("RESEND_FROM_EMAIL"), level: "rec", hint: 'Ex.: "BRINKA Brinquedos <suporte@brinka.com.br>".' },
+        { label: "Resend — remetente", envs: ["RESEND_FROM_EMAIL"], set: has("RESEND_FROM_EMAIL"), level: "rec", hint: 'Ex.: "BRINKA Brinquedos <suportepedidos@brinkabrinquedos.shop>".' },
       ],
     },
     {
