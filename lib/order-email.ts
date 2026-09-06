@@ -40,7 +40,7 @@ export type OrderEmailInput = {
 const BRAND_NAME = "BRINKA Brinquedos";
 const BRAND_TAGLINE = "Brinquedos que a criança volta a pegar";
 const BRAND_TRACKING_URL =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://brinkabrinquedos.shop";
+  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://www.brinkabrinquedos.shop";
 
 // Paleta do e-mail — os mesmos tokens de app/loja.css, para o e-mail parecer a
 // loja e não um template genérico. Se a marca mudar de cor, mexe aqui e nas

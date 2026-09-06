@@ -235,9 +235,8 @@ export const products: Product[] = [
     // painel /admin edita e o que alimenta o card de busca. A galeria que a PDP
     // mostra vem sempre da variante escolhida.
     images: PISTA.images,
-    // Nota e contagem são as do anúncio de origem da versão Pista (TikTok Shop,
-    // vendedor Candystar): 4,7 com 1.192 avaliações. As avaliações são do
-    // produto, não da versão — as duas dividem a mesma página. Se mexer aqui,
+    // Nota e contagem são do produto, não da versão — as duas dividem a mesma
+    // página. Se mexer aqui,
     // ajuste também o DIST em components/ProductPage: são as barrinhas por
     // estrela, e a média que elas representam precisa fechar com este número.
     rating: 4.7,

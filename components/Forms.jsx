@@ -80,7 +80,7 @@ export function CvForm() {
         <button type="button" onClick={() => setSent(true)}>Enviar</button>
       </div>
       <div className={`trackres${sent ? " show" : ""}`}>
-        Recebido! Envie seu currículo para vagas@brinkabrinquedos.com.br com o assunto da
+        Recebido! Envie seu currículo para suportepedidos@brinkabrinquedos.shop com o assunto da
         área de interesse.
       </div>
     </>

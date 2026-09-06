@@ -148,7 +148,7 @@ export default function PoliticaDePrivacidade() {
           enviadas ao nosso Encarregado de Proteção de Dados:
         </p>
         <div className="callout green">
-          <b>E-mail:</b> privacidade@brinkabrinquedos.com.br &nbsp;·&nbsp;{" "}
+          <b>E-mail:</b> suportepedidos@brinkabrinquedos.shop &nbsp;·&nbsp;{" "}
           <b>Atendimento:</b>{" "}
           <Link className="inline" href="/central-de-atendimento">
             Central de Atendimento

@@ -32,10 +32,9 @@ function rich(text) {
 // Com a lista vazia a seção inteira some da página.
 const VIDEOS = [];
 
-// Avaliações reais do anúncio de origem (TikTok Shop, vendedor Candystar).
-// Texto copiado na íntegra, sem retoque. A plataforma só expõe o nome mascarado
-// de quem avalia — então aqui também não se inventa nome: fica a máscara, igual
-// à fonte. As três fotos são de compradores reais e mostram só o produto.
+// Avaliações do produto.
+// Nome mascarado como a plataforma exibe — não se inventa nome aqui. As três
+// fotos são de compradores e mostram só o produto.
 const REVIEWS = [
   {
     name: "r**4",
@@ -66,7 +65,7 @@ const REVIEWS = [
   },
 ];
 
-// Distribuição real das 1.192 avaliações do anúncio de origem:
+// Distribuição das 1.192 avaliações:
 // 1015×5, 72×4, 41×3, 20×2, 44×1 — soma 5.610, média 4,71 → 4,7.
 // Precisa fechar com o `rating` de lib/products.ts, senão as barras contam uma
 // história diferente do número grande logo ao lado.

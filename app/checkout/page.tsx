@@ -323,7 +323,6 @@ function CheckoutContent() {
   // Estados
   const [payMethod, setPayMethod] = useState<'pix' | 'card'>('pix');
   const [currentStep, setCurrentStep] = useState(1);
-  const [timeLeft, setTimeLeft] = useState(15 * 60);
 
   // Form State
   const [name, setName] = useState('');
@@ -675,16 +674,6 @@ function CheckoutContent() {
       }
     }
   };
-  
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-  
-  const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-  const seconds = String(timeLeft % 60).padStart(2, '0');
 
   const handlePixSubmit = async () => {
     setPixError(null);
@@ -1386,11 +1375,6 @@ function CheckoutContent() {
         <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-xs sm:text-sm">
           <ShieldCheck className="w-4 h-4 text-emerald-600" /> Pagamento 100% seguro
         </div>
-      </div>
-
-      {/* Timer Bar */}
-      <div className="orange-flow text-white text-center py-2.5 font-bold text-sm shadow-md">
-        ⏰ Oferta expira em <strong className="font-black tabular-nums tracking-wider">{minutes}:{seconds}</strong> — finalize seu pedido agora
       </div>
 
       {/* Main Content */}

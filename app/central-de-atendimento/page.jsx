@@ -3,7 +3,7 @@ import { ContactForm } from "@/components/Forms";
 
 export const metadata = {
   title: "Central de Atendimento | BRINKA Brinquedos",
-  description: "Fale com a BRINKA Brinquedos: e-mail, WhatsApp, telefone, horários e endereço.",
+  description: "Fale com a BRINKA Brinquedos: e-mail, horários e endereço.",
 };
 
 export default function CentralDeAtendimento() {
@@ -41,30 +41,7 @@ export default function CentralDeAtendimento() {
             </div>
             <h3>E-mail</h3>
             <p>
-              <a href="mailto:contato@brinkabrinquedos.com.br">contato@brinkabrinquedos.com.br</a>
-            </p>
-          </div>
-          <div className="cc">
-            <div className="ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M20 15.5a9 9 0 1 1-4.5-4.5" />
-                <path d="M21 3l-6 6" />
-              </svg>
-            </div>
-            <h3>WhatsApp</h3>
-            <p>
-              <a href="#">(11) 90000-0000</a>
-            </p>
-          </div>
-          <div className="cc">
-            <div className="ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" />
-              </svg>
-            </div>
-            <h3>Telefone / SAC</h3>
-            <p>
-              <a href="tel:+551130000000">(11) 3000-0000</a>
+              <a href="mailto:suportepedidos@brinkabrinquedos.shop">suportepedidos@brinkabrinquedos.shop</a>
             </p>
           </div>
         </div>
@@ -83,7 +60,7 @@ export default function CentralDeAtendimento() {
           </tbody>
         </table>
         <div className="callout green">
-          Tempo médio de resposta: <b>até 24 horas úteis</b> por e-mail e WhatsApp.
+          Tempo médio de resposta: <b>até 24 horas úteis</b> por e-mail.
         </div>
       </section>
 
