@@ -48,7 +48,11 @@ export default function SiteFooter() {
           <Link href="/politica-de-garantia">Garantia</Link>
         </div>
         <div className="fbottom">
-          <div>© 2026 BRINKA Brinquedos Ltda · CNPJ 00.000.000/0001-00 · Todos os direitos reservados</div>
+          <div>
+            © {new Date().getFullYear()} UNICA SUPLLY MRO FORNECEDORA LTDA · CNPJ 48.983.485/0001-07
+            <br />
+            suportepedidos@brinkabrinquedos.shop · Todos os direitos reservados
+          </div>
           <div className="seals">
             <span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -55,7 +55,7 @@ export default function NossasLojas() {
         <table className="legal-table">
           <tbody>
             <tr><th>Unidade</th><th>Endereço</th></tr>
-            <tr><td>Sede administrativa</td><td>Rua Exemplo, 000 — São Paulo/SP</td></tr>
+            <tr><td>Sede administrativa</td><td>Av. Padre Roser, 856, Loja — Irajá, Rio de Janeiro/RJ</td></tr>
             <tr><td>Centro de distribuição</td><td>Av. Exemplo Logística, 000 — São Paulo/SP</td></tr>
           </tbody>
         </table>

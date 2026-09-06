@@ -92,17 +92,14 @@ export default function CentralDeAtendimento() {
           <span className="num">03</span> Dados da empresa
         </h2>
         <p>
-          <b>BRINKA Brinquedos Ltda</b>
+          <b>UNICA SUPLLY MRO FORNECEDORA LTDA</b>
           <br />
-          CNPJ: 00.000.000/0001-00
+          CNPJ: 48.983.485/0001-07
           <br />
-          Endereço: Rua Exemplo, 000 — Bairro, São Paulo/SP, CEP 00000-000
+          Endereço: Av. Padre Roser, 856, Loja — Irajá, Rio de Janeiro/RJ, CEP 21.220-560
+          <br />
+          E-mail: suportepedidos@brinkabrinquedos.shop
         </p>
-        <div className="callout">
-          ⚠️ Placeholder: substitua razão social, CNPJ, e-mail, telefone e endereço pelos
-          dados reais da sua empresa. O Google Ads exige informações de contato
-          verdadeiras e verificáveis para aprovar a loja.
-        </div>
       </section>
 
       <section id="msg">

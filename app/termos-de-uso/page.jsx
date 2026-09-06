@@ -26,7 +26,7 @@ export default function TermosDeUso() {
       }}
       intro={
         <>
-          Ao acessar e utilizar o site da <b>BRINKA Brinquedos Ltda</b> e realizar compras,
+          Ao acessar e utilizar o site da <b>UNICA SUPLLY MRO FORNECEDORA LTDA</b> e realizar compras,
           você concorda com os termos e condições descritos abaixo. Leia com atenção antes
           de finalizar seu pedido.
         </>

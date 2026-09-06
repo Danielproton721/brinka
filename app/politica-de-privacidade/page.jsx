@@ -28,7 +28,7 @@ export default function PoliticaDePrivacidade() {
       }}
       intro={
         <>
-          A sua privacidade é prioridade para a <b>BRINKA Brinquedos Ltda</b>. Esta política
+          A sua privacidade é prioridade para a <b>UNICA SUPLLY MRO FORNECEDORA LTDA</b>. Esta política
           explica, de forma transparente, quais dados pessoais coletamos, por que coletamos,
           como os utilizamos e quais são os seus direitos, em conformidade com a{" "}
           <b>Lei Geral de Proteção de Dados (Lei nº 13.709/2018 – LGPD)</b>.
@@ -40,8 +40,8 @@ export default function PoliticaDePrivacidade() {
           <span className="num">01</span> Quem somos
         </h2>
         <p>
-          Este site é operado pela BRINKA Brinquedos Ltda, inscrita no CNPJ nº
-          00.000.000/0001-00, com sede na Rua Exemplo, 000, São Paulo/SP, CEP 00000-000.
+          Este site é operado pela UNICA SUPLLY MRO FORNECEDORA LTDA, inscrita no CNPJ nº
+          48.983.485/0001-07, com sede na Av. Padre Roser, 856, Loja — Irajá, Rio de Janeiro/RJ, CEP 21.220-560.
           Somos os controladores dos dados pessoais tratados neste site.
         </p>
       </section>
