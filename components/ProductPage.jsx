@@ -291,11 +291,21 @@ export default function ProductPage({ product }) {
   return (
     <div ref={rootRef}>
       <div className="announce">
-        🦖 <b>FRETE GRÁTIS</b> para todo o Brasil <span className="sep">•</span>
+        {/* O separador vive DENTRO do hide-sm: no mobile o "12x" some, e um
+            bullet solto no fim da barra ficaria órfão. */}
+        {/* Caminhão em SVG no lugar do emoji: emoji muda de desenho conforme
+            o sistema (e no Windows sai colorido demais pra barra escura). */}
+        <svg className="announce-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M1 6.5h11.5v9H1z" />
+          <path d="M12.5 9.5H17l3 3v3h-7.5z" />
+          <circle cx="6" cy="17.5" r="1.9" />
+          <circle cx="16.5" cy="17.5" r="1.9" />
+        </svg>
+        <b>FRETE GRÁTIS</b> para todo o Brasil
         <span className="hide-sm">
-          Parcele em <b>12x sem juros</b>
-        </span>{" "}
-        <span className="sep">•</span> Garantia de <b>12 meses</b>
+          {" "}
+          <span className="sep">•</span> Parcele em <b>12x sem juros</b>
+        </span>
       </div>
 
       <header>

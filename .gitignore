@@ -3,3 +3,6 @@ node_modules
 out
 .vercel
 .env*.local
+
+# cache do type-check — muda a cada build, nao versionar
+*.tsbuildinfo

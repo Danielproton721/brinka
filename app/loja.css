@@ -29,6 +29,7 @@ h1,h2,h3,h4,.display{font-family:var(--font-display),sans-serif;letter-spacing:-
 
 /* ===== announcement ===== */
 .announce{background:var(--ink);color:#f4efe6;font-size:13px;font-weight:600;text-align:center;padding:9px 16px;letter-spacing:.01em}
+.announce-ico{width:17px;height:17px;display:inline-block;vertical-align:-3.5px;margin-right:7px;color:#ffcf9e}
 .announce b{color:#ffcf9e}
 .announce .sep{opacity:.35;margin:0 14px}
 @media(max-width:640px){.announce .sep,.announce .hide-sm{display:none}}
