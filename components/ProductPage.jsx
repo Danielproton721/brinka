@@ -28,7 +28,7 @@ function rich(text) {
     .map((part, i) => (i % 2 ? <b key={i}>{part}</b> : part));
 }
 
-// Vídeos do produto (seção "Em ação"), exibidos num carrossel que anda sozinho
+// Vídeos do produto (seção "Em casa"), num carrossel que anda sozinho
 // e não para. Jogue os MP4 em public/videos/ e liste os caminhos aqui:
 //   const VIDEOS = ["/videos/engole-carrinho.mp4", "/videos/corrida.mp4"];
 // Com a lista vazia a seção inteira some da página.
@@ -573,11 +573,11 @@ export default function ProductPage({ product }) {
       {VIDEOS.length > 0 && (
         <section className="section alt">
           <div className="wrap reveal">
-            <span className="eyebrow">Em ação</span>
-            <h2>Veja a cegonha dinossauro funcionando</h2>
+            <span className="eyebrow">Em casa</span>
+            <h2>Veja funcionando de verdade</h2>
             <p className="lead">
-              Vídeos reais do produto — a boca engolindo o carrinho, a pista abrindo e a
-              corrida em duas raias.
+              Caminhão, pista de mais de um metro e dinossauro — o mesmo brinquedo,
+              três brincadeiras.
             </p>
             <VideoCarousel videos={VIDEOS} label="Vídeos do produto em reprodução automática" />
           </div>
