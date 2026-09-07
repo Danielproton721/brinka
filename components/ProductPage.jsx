@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import Logo from "./Logo";
 import SiteFooter from "./SiteFooter";
+import VideoCarousel from "./VideoCarousel";
 
 /* Formata 90 -> "90" e 489.93 -> "489,93" (padrão brasileiro). */
 function brl(value) {
@@ -27,10 +28,24 @@ function rich(text) {
     .map((part, i) => (i % 2 ? <b key={i}>{part}</b> : part));
 }
 
-// Vídeos do produto (seção "Em ação"). Coloque os MP4 em public/videos/ e
-// liste os caminhos aqui — ex.: ["/videos/engole-carrinho.mp4", "/videos/corrida.mp4"].
+// Vídeos do produto (seção "Em ação"), exibidos num carrossel que anda sozinho
+// e não para. Jogue os MP4 em public/videos/ e liste os caminhos aqui:
+//   const VIDEOS = ["/videos/engole-carrinho.mp4", "/videos/corrida.mp4"];
 // Com a lista vazia a seção inteira some da página.
-const VIDEOS = [];
+//
+// Formato: vertical (9:16) é o que a moldura espera. Deixe cada clipe curto
+// (5-15s) e LEVE — todos tocam ao mesmo tempo, então arquivo grande trava
+// celular fraco. Ideal: H.264, ~720x1280, sem faixa de áudio (o player é mudo
+// de qualquer forma, e áudio só engorda o arquivo).
+//
+// A partir de 3 vídeos a faixa fica bem cheia; com 1 ou 2 ela anda mas o vazio
+// aparece nas pontas.
+const VIDEOS = [
+  "/videos/video-1.mp4",
+  "/videos/video-2.mp4",
+  "/videos/video-3.mp4",
+  "/videos/video-4.mp4",
+];
 
 // Avaliações do produto.
 // Nome mascarado como a plataforma exibe — não se inventa nome aqui. As três
@@ -564,11 +579,7 @@ export default function ProductPage({ product }) {
               Vídeos reais do produto — a boca engolindo o carrinho, a pista abrindo e a
               corrida em duas raias.
             </p>
-            <div className="videos">
-              {VIDEOS.map((src) => (
-                <video key={src} src={src} controls preload="metadata" playsInline />
-              ))}
-            </div>
+            <VideoCarousel videos={VIDEOS} label="Vídeos do produto em reprodução automática" />
           </div>
         </section>
       )}

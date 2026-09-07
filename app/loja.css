@@ -224,9 +224,26 @@ h1.title{font-size:30px;font-weight:700;margin:14px 0 12px;line-height:1.12}
 .hl li b{font-weight:700}
 
 /* videos */
-.videos{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:34px}
-@media(max-width:700px){.videos{grid-template-columns:1fr}}
-.videos video{width:100%;border-radius:var(--r-lg);border:1px solid var(--line);background:#000;box-shadow:var(--shadow-md);aspect-ratio:9/16;object-fit:cover;max-height:560px}
+/* ===== carrossel de video (auto, infinito, sem controles) ===== */
+.vcarousel{margin-top:34px;overflow:hidden;
+  /* esfumaça as pontas pra faixa entrar e sair de cena em vez de ser cortada */
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.vtrack{display:flex;width:max-content;
+  /* a duracao acompanha a quantidade: mais video nao deixa a faixa mais rapida */
+  animation:vslide calc(var(--n,3) * 9s) linear infinite}
+.vtrack video{width:270px;flex:0 0 auto;margin-right:18px;border-radius:var(--r-lg);
+  border:1px solid var(--line);background:#000;box-shadow:var(--shadow-md);
+  aspect-ratio:9/16;object-fit:cover;pointer-events:none}
+@keyframes vslide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:700px){.vtrack video{width:200px;margin-right:12px}}
+/* Quem pediu menos movimento no sistema nao leva faixa andando sozinha: vira
+   uma tira que a pessoa arrasta. Os videos seguem rodando. */
+@media(prefers-reduced-motion:reduce){
+  .vcarousel{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .vtrack{animation:none}
+  .vtrack video{pointer-events:auto}
+}
 
 /* ===== reviews ===== */
 .rev-head{display:grid;grid-template-columns:300px 1fr;gap:44px;align-items:center;margin-top:30px}
@@ -465,8 +482,6 @@ footer{background:var(--ink);color:#cfc7ba;padding:64px 0 30px;margin-top:10px}
   .desc-body p{font-size:15px}
   .hl{padding:22px 18px}
   .feat h3{font-size:16px}
-  .videos{gap:14px}
-  .videos video{max-height:70vh}
 
   .rev-head{margin-top:20px;gap:20px}
   .score{padding:22px}
