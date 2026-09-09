@@ -10,11 +10,11 @@ export const dynamic = "force-dynamic"
 // ============================================================================
 //  PORTA ÚNICA DO RELAY
 //
-//  Um cadastro só no hub aponta pra cá; este endpoint descobre de qual gateway
+//  Um cadastro só na loja da frente aponta pra cá; este endpoint descobre de qual gateway
 //  veio o aviso e entrega pro handler certo. Sem isso seria preciso registrar
-//  uma chave por gateway no hub (cada chave repassa pra um destino fixo).
+//  uma chave por gateway na loja da frente (cada chave repassa pra um destino fixo).
 //
-//  No hub, o destino desta loja é:  https://<dominio>/api/webhooks/relay-in
+//  Na loja da frente, o destino desta loja é:  https://<dominio>/api/webhooks/relay-in
 // ============================================================================
 
 function pick(payload: any, keys: string[]) {
@@ -43,7 +43,7 @@ function extractTxid(payload: any): string | null {
 
 // Descobre o gateway na ordem do mais confiável pro mais chutado.
 async function detectGateway(request: Request, payload: any): Promise<{ id: GatewayId; how: string }> {
-  // 1. Assinatura própria da Medusa no header (o hub repassa os originais).
+  // 1. Assinatura própria da Medusa no header (a loja da frente repassa os originais).
   if (request.headers.get("x-medusa-signature")) return { id: "medusa", how: "header medusa" }
 
   // 2. O txid foi gravado com o gateway que criou a cobrança (lib/gateways/active).

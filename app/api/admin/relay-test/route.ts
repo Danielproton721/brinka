@@ -5,7 +5,7 @@ import { isAuthed } from "@/lib/admin-auth"
 export const dynamic = "force-dynamic"
 
 // Testa o caminho do relay de ponta a ponta, SEM pagamento:
-//   esta loja → URL do relay (hub) → o hub repassa → volta em /api/webhooks/relay-in
+//   esta loja → loja da frente → ela repassa → volta em /api/webhooks/relay-in
 // Como o aviso dá a volta e retorna pra cá, uma resposta prova o circuito todo.
 //
 // O id enviado não existe em gateway nenhum, então nada é marcado como pago: o
@@ -28,7 +28,7 @@ export async function POST() {
       ok: false,
       titulo: "Sem URL do relay",
       detalhe:
-        "Defina NOTIFY_URL_OVERRIDE com a URL que o hub te deu. Sem ela o gateway enxerga o domínio desta loja.",
+        "Defina NOTIFY_URL_OVERRIDE com a URL que a loja da frente te deu. Sem ela o gateway enxerga o domínio desta loja.",
     })
   }
 
@@ -38,7 +38,7 @@ export async function POST() {
       ok: false,
       titulo: "Sem RELAY_SECRET",
       detalhe:
-        "O relay-in recusa qualquer aviso sem o header x-relay-secret. Defina a env com o mesmo segredo do hub.",
+        "O relay-in recusa qualquer aviso sem o header x-relay-secret. Defina a env com o mesmo segredo da loja da frente.",
     })
   }
 
