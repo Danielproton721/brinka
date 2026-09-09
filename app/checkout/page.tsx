@@ -100,7 +100,24 @@ declare global {
 
 // Dispara a conversao SO quando o pagamento foi confirmado. Usa o transaction_id
 // (codigo do pedido) + localStorage para nunca contar a mesma venda 2x.
-function sendGoogleAdsPurchaseConversion(transactionId: string, value: number) {
+// Telefone no formato E.164 que o Google espera (+55DDNNNNNNNNN). Entra o que o
+// cliente digitou, "(11) 99999-9999"; sai só dígito com o país na frente.
+// Fora de 10 ou 11 dígitos devolve vazio — melhor não mandar do que mandar
+// número quebrado.
+function toE164BR(phone: string): string {
+  const d = (phone || '').replace(/\D/g, '');
+  if (d.length !== 10 && d.length !== 11) return '';
+  return `+55${d}`;
+}
+
+// Conversões otimizadas: junto da conversão vão o e-mail e o telefone que o
+// PRÓPRIO cliente digitou nesta compra, e nada além disso. O gtag aplica o
+// hash antes de sair do navegador — o dado cru não é enviado.
+function sendGoogleAdsPurchaseConversion(
+  transactionId: string,
+  value: number,
+  buyer?: { email?: string; phone?: string },
+) {
   if (typeof window === 'undefined' || !transactionId) return;
   if (!GOOGLE_ADS_CONVERSION_SEND_TO) return; // sem env, nao credita em ninguem
   try {
@@ -114,6 +131,18 @@ function sendGoogleAdsPurchaseConversion(transactionId: string, value: number) {
       window.gtag = function gtag() {
         window.dataLayer?.push(arguments);
       };
+    }
+
+    // user_data ANTES do evento: o gtag precisa já ter os dados quando a
+    // conversão dispara. Campo vazio ou malformado não entra no objeto — o
+    // Google prefere a chave ausente a uma chave com lixo.
+    const userData: { email?: string; phone_number?: string } = {};
+    const email = (buyer?.email || '').trim().toLowerCase();
+    if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) userData.email = email;
+    const phoneE164 = toE164BR(buyer?.phone || '');
+    if (phoneE164) userData.phone_number = phoneE164;
+    if (Object.keys(userData).length > 0) {
+      window.gtag('set', 'user_data', userData);
     }
 
     window.gtag('event', 'conversion', {
@@ -367,8 +396,8 @@ function CheckoutContent() {
   useEffect(() => {
     if (!paymentConfirmed || !orderCode || purchaseConversionSentRef.current) return;
     purchaseConversionSentRef.current = true;
-    sendGoogleAdsPurchaseConversion(orderCode, checkoutTotal);
-  }, [paymentConfirmed, orderCode, checkoutTotal]);
+    sendGoogleAdsPurchaseConversion(orderCode, checkoutTotal, { email, phone });
+  }, [paymentConfirmed, orderCode, checkoutTotal, email, phone]);
 
   // Mantém a ref espelhada com o estado (lida pelas armadilhas de saída).
   useEffect(() => {
