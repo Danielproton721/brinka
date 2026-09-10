@@ -194,7 +194,7 @@ export async function POST(request: Request) {
       cpfDigits,
       phoneDigits,
       ip: buyerIp,
-      title: title || "Combo Enxoval",
+      title: title || "BRINKA Brinquedos",
       postbackUrl,
     });
     if (!result.ok) {
@@ -258,7 +258,7 @@ export async function POST(request: Request) {
       cpfDigits,
       phoneDigits,
       ip: buyerIp,
-      title: title || "Combo Enxoval",
+      title: title || "BRINKA Brinquedos",
       postbackUrl,
       address,
     });
@@ -327,7 +327,7 @@ export async function POST(request: Request) {
     },
     products: [
       {
-        name: title || "Combo Enxoval",
+        name: title || "BRINKA Brinquedos",
         quantity: 1,
         price: amountCents,
       },

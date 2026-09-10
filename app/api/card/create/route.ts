@@ -142,7 +142,7 @@ export async function POST(request: Request) {
     },
     products: [
       {
-        name: title || "Combo Enxoval",
+        name: title || "BRINKA Brinquedos",
         price: amountCents,
         quantity: 1,
       },

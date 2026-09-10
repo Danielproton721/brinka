@@ -391,6 +391,15 @@ function CheckoutContent() {
   // parcelamento, a conversão do Google Ads e o valor cobrado no gateway.
   const checkoutTotal = Math.max(0, totalPrice - couponDiscount) + shippingPrice;
 
+  // Descrição que o cliente lê no app do banco (PIX) e na fatura do cartão.
+  // Vem do carrinho: antes era a string fixa "Combo Enxoval", herdada de outra
+  // loja, e quem comprava brinquedo via "enxoval" na hora de pagar.
+  const tituloDaCobranca = (() => {
+    if (!items.length) return "BRINKA Brinquedos";
+    const primeiro = items[0].name;
+    return items.length > 1 ? `${primeiro} e mais ${items.length - 1}` : primeiro;
+  })();
+
   // Conversao de compra (Google Ads) — dispara apenas quando o pagamento foi
   // confirmado, enviando o valor real e o id unico do pedido.
   useEffect(() => {
@@ -721,7 +730,7 @@ function CheckoutContent() {
           cpf,
           name,
           email,
-          title: "Combo Enxoval",
+          title: tituloDaCobranca,
           // Pedido completo persistido no servidor (KV) para o webhook
           // conseguir disparar o e-mail mesmo com a aba fechada.
           order: {
@@ -998,7 +1007,7 @@ function CheckoutContent() {
               cpf,
               phone,
               installments: parseInt(cardInstallments) || 1,
-              title: 'Combo Enxoval',
+              title: tituloDaCobranca,
               token: tokenData?.token,
               address,
               browser: browserInfo,
