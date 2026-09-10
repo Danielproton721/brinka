@@ -7,6 +7,9 @@ type ClientCfg = {
   webhookPath: string
   secretSet: boolean
   notifyOverride: string
+  relayEnabled: boolean
+  /** false = sem KV: o botão não guardaria a escolha, então nem aparece. */
+  canToggle: boolean
 }
 type Data = {
   activeGateway?: string
@@ -97,11 +100,43 @@ function CollapsibleCard({
 // Card do relay em linguagem de quem NÃO é técnico. A regra aqui é: só falar
 // de coisa que a pessoa vê na tela (Vercel, painel da loja da frente), dizendo
 // onde clicar e o que colar. Nada de "webhook", "header" ou "endpoint" solto.
-function ClientRelayPanel({ cfg, origin }: { cfg: ClientCfg; origin: string }) {
+function ClientRelayPanel({
+  cfg,
+  origin,
+  onChanged,
+}: {
+  cfg: ClientCfg
+  origin: string
+  onChanged: () => void
+}) {
   const urlDestaLoja = `${origin}${cfg.webhookPath}`
   const temSegredo = cfg.secretSet
   const temUrlFrente = Boolean(cfg.notifyOverride)
-  const prontoTudo = temSegredo && temUrlFrente
+  const ligado = cfg.relayEnabled && temUrlFrente
+  const prontoTudo = temSegredo && temUrlFrente && cfg.relayEnabled
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  // Desligar é seguro: o pedido continua sendo confirmado, só que o gateway
+  // passa a ver o domínio desta loja em vez do da frente.
+  async function alternar() {
+    setSalvando(true)
+    setErro(null)
+    try {
+      const r = await fetch("/api/admin/relay", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ enabled: !cfg.relayEnabled }),
+      })
+      const d = await r.json().catch(() => null)
+      if (!d?.ok) setErro(d?.error || "Não consegui salvar.")
+      else onChanged()
+    } catch (e: any) {
+      setErro(e?.message || "Falha de rede.")
+    } finally {
+      setSalvando(false)
+    }
+  }
 
   return (
     <CollapsibleCard
@@ -113,7 +148,7 @@ function ClientRelayPanel({ cfg, origin }: { cfg: ClientCfg; origin: string }) {
             prontoTudo ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
           }`}
         >
-          {prontoTudo ? "Tudo pronto" : "Falta configurar"}
+          {prontoTudo ? "Ligado" : cfg.relayEnabled ? "Falta configurar" : "Desligado"}
         </span>
       }
     >
@@ -122,6 +157,39 @@ function ClientRelayPanel({ cfg, origin }: { cfg: ClientCfg; origin: string }) {
         <strong className="text-foreground">loja da frente</strong>: ela recebe o aviso de que o
         cliente pagou e passa esse aviso para cá.
       </p>
+
+      {/* Liga/desliga. Só aparece quando há onde guardar a escolha (KV) e uma
+          URL pra ligar — botão que não persiste engana mais do que ajuda. */}
+      {cfg.canToggle && temUrlFrente && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-bold text-foreground">
+              {ligado ? "Recebendo pela loja da frente" : "Recebendo direto do gateway"}
+            </div>
+            <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+              {ligado
+                ? "A Pagou.ai avisa a loja da frente, que repassa pra cá."
+                : "A Pagou.ai avisa esta loja direto — ela passa a ver o domínio daqui."}
+            </div>
+          </div>
+          <button
+            onClick={alternar}
+            disabled={salvando}
+            className={`shrink-0 rounded-lg px-4 py-2 text-sm font-bold transition-opacity disabled:opacity-50 ${
+              ligado
+                ? "border border-border text-foreground hover:bg-muted"
+                : "bg-primary text-primary-foreground"
+            }`}
+          >
+            {salvando ? "Salvando…" : ligado ? "Desligar" : "Ligar"}
+          </button>
+        </div>
+      )}
+      {erro && (
+        <p className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-[11px] text-red-800">
+          {erro}
+        </p>
+      )}
 
       {/* PASSO 1 — o que falta hoje: as duas variáveis */}
       <div className="mb-3 rounded-xl border border-border bg-background p-4">
@@ -190,16 +258,20 @@ export function RelayPanel() {
     setOrigin(window.location.origin)
   }, [])
 
-  useEffect(() => {
+  const carregar = () => {
     fetch("/api/admin/relay", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => d && setData(d))
       .catch(() => {})
-  }, [])
+  }
+
+  useEffect(carregar, [])
 
   return (
     <div className="space-y-6">
-      {data?.client && <ClientRelayPanel cfg={data.client} origin={origin} />}
+      {data?.client && (
+        <ClientRelayPanel cfg={data.client} origin={origin} onChanged={carregar} />
+      )}
     </div>
   )
 }

@@ -9,6 +9,7 @@ import {
 import { buildOrderCode } from "@/lib/order-code";
 import { saveOrder } from "@/lib/order-store";
 import { indexOrder } from "@/lib/orders";
+import { getRelayNotifyUrl } from "@/lib/store-config";
 import type { OrderEmailItem } from "@/lib/order-email";
 import { getActiveGateway, markTxGateway } from "@/lib/gateways/active";
 import { createPixMedusa, medusaConfigured } from "@/lib/gateways/medusa";
@@ -73,10 +74,14 @@ async function persistNewOrder(
   return orderCode;
 }
 
-function getPublicNotifyUrl(request: Request) {
-  // Relay opcional: se NOTIFY_URL_OVERRIDE estiver definida, o notify_url aponta
-  // pra ela (o relay num domínio neutro), sem revelar o domínio da loja ao
-  // gateway. Sem a env, mantém o comportamento original (domínio da própria loja).
+async function getPublicNotifyUrl(request: Request) {
+  // Relay opcional. A URL vem primeiro do painel (/admin → aba Relay), que
+  // permite ligar e desligar sem deploy; se lá estiver vazio ou desligado, cai
+  // na env NOTIFY_URL_OVERRIDE. Sem nenhum dos dois, mantém o comportamento
+  // original: o notify_url aponta pro domínio da própria loja.
+  const doPainel = await getRelayNotifyUrl();
+  if (doPainel) return doPainel;
+
   const override = process.env.NOTIFY_URL_OVERRIDE?.trim();
   if (override) return override;
 
@@ -118,6 +123,7 @@ export async function POST(request: Request) {
   }
 
   const { value, phone, email, name, cpf, title } = body ?? {};
+
 
   // Validação estrita
   if (!value || value <= 0) {
@@ -334,7 +340,7 @@ export async function POST(request: Request) {
     ],
   };
 
-  const notifyUrl = getPublicNotifyUrl(request);
+  const notifyUrl = await getPublicNotifyUrl(request);
   if (notifyUrl) {
     Object.assign(payload, { notify_url: notifyUrl });
   }
