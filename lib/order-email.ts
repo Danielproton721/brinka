@@ -305,7 +305,7 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
       </div>
       <div style="width:42px;height:2px;background:${C.accent};margin:10px auto 14px;"></div>
       <p style="margin:0 0 14px;font-size:11px;color:${C.mutedSoft};line-height:1.45;">
-        Churrasqueiras, facas, kits e presentes premium para quem ama a brasa.
+        Caminhões, pistas e brinquedos para muita hora de brincadeira.
       </p>
       <div style="border-top:1px solid ${C.footerLine};padding-top:14px;">
         <p style="margin:0;font-size:11px;color:#8a8a8a;">© ${new Date().getFullYear()} ${BRAND_NAME}. Todos os direitos reservados.</p>
@@ -352,7 +352,7 @@ export function renderShippedEmail(order: OrderEmailInput, trackingCode: string)
       <div style="background:#f7f7f7;border:1px solid #dfdfdf;border-radius:12px;padding:0 14px;margin:0 auto 20px;max-width:320px;min-height:52px;line-height:52px;">
         <p style="margin:0;font-size:20px;font-family:'Courier New',monospace;color:${C.primary};font-weight:800;letter-spacing:2px;line-height:52px;">${escapeHtml(trackingCode)}</p>
       </div>
-      <a href="${escapeHtml(trackingHref)}" style="display:block;background:${C.accent};color:${C.primary};text-decoration:none;padding:0 18px;border-radius:999px;font-size:15px;font-weight:800;line-height:56px;min-height:56px;box-shadow:0 8px 18px rgba(185,138,46,0.30);letter-spacing:0.4px;text-transform:uppercase;max-width:360px;margin:0 auto;">
+      <a href="${escapeHtml(trackingHref)}" style="display:block;background:${C.accent};color:${C.primary};text-decoration:none;padding:0 18px;border-radius:999px;font-size:15px;font-weight:800;line-height:56px;min-height:56px;box-shadow:0 8px 18px rgba(255,90,31,0.32);letter-spacing:0.4px;text-transform:uppercase;max-width:360px;margin:0 auto;">
         Rastrear meu pedido
       </a>
       <p style="margin:12px 0 0;font-size:11px;color:${C.muted};line-height:1.4;">
@@ -362,7 +362,7 @@ export function renderShippedEmail(order: OrderEmailInput, trackingCode: string)
 
     <div style="padding:14px 30px 26px;">
       <div style="background:${C.accentSoft};border:1px solid ${C.accentBorder};border-radius:9px;padding:12px 14px;text-align:center;">
-        <p style="margin:0;font-size:12px;color:#9a5b00;line-height:1.45;">
+        <p style="margin:0;font-size:12px;color:${C.accentDark};line-height:1.45;">
           O primeiro rastreio pode levar até 24h para aparecer no site dos Correios. Pode ficar tranquilo — seu pedido já está a caminho.
         </p>
       </div>
@@ -373,7 +373,7 @@ export function renderShippedEmail(order: OrderEmailInput, trackingCode: string)
         ${brandHeader()}
       </div>
       <p style="margin:12px 0 0;font-size:11px;color:${C.mutedSoft};line-height:1.45;">
-        Churrasqueiras, facas, kits e presentes premium para quem ama a brasa.
+        Caminhões, pistas e brinquedos para muita hora de brincadeira.
       </p>
       <p style="margin:10px 0 0;font-size:11px;color:#8a8a8a;">© ${new Date().getFullYear()} ${BRAND_NAME}. Todos os direitos reservados.</p>
     </div>
@@ -429,7 +429,7 @@ export function renderAbandonedCartEmail(order: OrderEmailInput) {
     </div>
 
     <div style="background:${C.cardSofter};padding:26px 30px;text-align:center;border-bottom:1px solid ${C.line};">
-      <p style="margin:0 0 6px;font-size:34px;line-height:1;">🔥</p>
+      <p style="margin:0 0 6px;font-size:34px;line-height:1;">🚚</p>
       <h1 style="margin:0 0 8px;font-size:20px;color:${C.primary};font-weight:800;line-height:1.25;">
         ${escapeHtml(firstName)}, seu pedido ficou pela metade!
       </h1>
@@ -452,7 +452,7 @@ export function renderAbandonedCartEmail(order: OrderEmailInput) {
     </div>
 
     <div style="padding:8px 30px 26px;text-align:center;">
-      <a href="${escapeHtml(shopHref)}" style="display:block;background:${C.accent};color:${C.primary};text-decoration:none;padding:0 18px;border-radius:999px;font-size:15px;font-weight:800;line-height:56px;min-height:56px;box-shadow:0 8px 18px rgba(185,138,46,0.30);letter-spacing:0.4px;text-transform:uppercase;">
+      <a href="${escapeHtml(shopHref)}" style="display:block;background:${C.accent};color:${C.primary};text-decoration:none;padding:0 18px;border-radius:999px;font-size:15px;font-weight:800;line-height:56px;min-height:56px;box-shadow:0 8px 18px rgba(255,90,31,0.32);letter-spacing:0.4px;text-transform:uppercase;">
         Finalizar meu pedido
       </a>
       <p style="margin:12px 0 0;font-size:12px;color:${C.muted};line-height:1.5;">
@@ -465,7 +465,7 @@ export function renderAbandonedCartEmail(order: OrderEmailInput) {
         ${brandHeader()}
       </div>
       <p style="margin:12px 0 0;font-size:11px;color:${C.mutedSoft};line-height:1.45;">
-        Churrasqueiras, facas, kits e presentes premium para quem ama a brasa.
+        Caminhões, pistas e brinquedos para muita hora de brincadeira.
       </p>
       <p style="margin:10px 0 0;font-size:11px;color:#8a8a8a;">© ${new Date().getFullYear()} ${BRAND_NAME}. Todos os direitos reservados.</p>
     </div>
