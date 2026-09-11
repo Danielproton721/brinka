@@ -1,6 +1,6 @@
 import Link from "next/link";
 import LegalPage from "@/components/LegalPage";
-import { TrackForm } from "@/components/Forms";
+import TrackingSimulator from "@/components/TrackingSimulator";
 
 export const metadata = {
   title: "Rastrear Pedido | BRINKA Brinquedos",
@@ -33,11 +33,7 @@ export default function RastrearPedido() {
         <h2>
           <span className="num">01</span> Buscar pedido
         </h2>
-        <TrackForm />
-        <div className="callout">
-          Este é um rastreio ilustrativo. Em produção, integre com a API dos
-          Correios/transportadora ou com sua plataforma de e-commerce.
-        </div>
+        <TrackingSimulator />
       </section>
 
       <section id="status">
