@@ -21,6 +21,7 @@ import {
 } from "./kv-store"
 import type { StoredOrder } from "./order-store"
 import { getTxGateway } from "./gateways/active"
+import { getEmailManualEm } from "./manual-email"
 import { recordOrderCreated, recordOrderPaid } from "./order-stats"
 
 export { kvConfigured }
@@ -30,6 +31,7 @@ export type AdminOrder = StoredOrder & {
   status: "pago" | "aguardando" | "abandonado"
   gateway?: string
   proofUrl?: string
+  emailManualEm?: string | null
 }
 
 // Sem confirmação por esse tempo (min) = consideramos abandonado.
@@ -109,7 +111,9 @@ export async function listRecentOrders(limit = 100): Promise<AdminOrder[]> {
     // Qual gateway processou este pedido (pagou/medusa/centurion) — pro painel
     // deixar claro pra onde cada pagamento foi de fato.
     const gateway = (await getTxGateway(txid)) ?? undefined
-    out.push({ ...order, txid, status, gateway })
+    // Só pedido não pago mostra o selo — poupa um comando no KV por pedido pago.
+    const emailManualEm = paid ? null : await getEmailManualEm(txid)
+    out.push({ ...order, txid, status, gateway, emailManualEm })
   }
   return out
 }

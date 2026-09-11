@@ -5,7 +5,13 @@
 // único caminho de envio.
 
 import { Resend } from "resend";
-import { renderOrderConfirmationEmail, renderAbandonedCartEmail, renderShippedEmail, type OrderEmailInput } from "./order-email";
+import {
+  renderOrderConfirmationEmail,
+  renderAbandonedCartEmail,
+  renderShippedEmail,
+  type OrderEmailInput,
+  type AbandonedEmailOptions,
+} from "./order-email";
 import { kvSetNx, kvDel } from "./kv-store";
 
 export type SendOrderEmailResult =
@@ -67,7 +73,10 @@ export async function sendOrderEmail(order: OrderEmailInput): Promise<SendOrderE
 
 // E-mail de PEDIDO PENDENTE (mesmo Resend, template diferente). Chamado pelo
 // /api/abandoned/check quando o pagamento não caiu no prazo.
-export async function sendAbandonedCartEmail(order: OrderEmailInput): Promise<SendOrderEmailResult> {
+export async function sendAbandonedCartEmail(
+  order: OrderEmailInput,
+  opts?: AbandonedEmailOptions,
+): Promise<SendOrderEmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error("[ABANDONED EMAIL] RESEND_API_KEY ausente.");
@@ -75,7 +84,7 @@ export async function sendAbandonedCartEmail(order: OrderEmailInput): Promise<Se
   }
   const fromAddress = process.env.RESEND_FROM_EMAIL || "BRINKA Brinquedos <suportepedidos@brinkabrinquedos.shop>";
   try {
-    const { subject, html } = renderAbandonedCartEmail(order);
+    const { subject, html } = renderAbandonedCartEmail(order, opts);
     const resend = new Resend(apiKey);
     const result = await resend.emails.send({
       from: fromAddress,

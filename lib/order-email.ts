@@ -384,10 +384,15 @@ export function renderShippedEmail(order: OrderEmailInput, trackingCode: string)
   return { subject, html };
 }
 
+export type AbandonedEmailOptions = {
+  // Link do botão; sem valor vai pro /checkout, como o automático sempre fez.
+  ctaHref?: string
+}
+
 // E-mail de PEDIDO PENDENTE (o cliente gerou o PIX mas não pagou). Disparado
 // pelo QStash ~15 min depois, se o pagamento não caiu. Foco: lembrar do pedido
 // e trazer o cliente de volta pra finalizar.
-export function renderAbandonedCartEmail(order: OrderEmailInput) {
+export function renderAbandonedCartEmail(order: OrderEmailInput, opts?: AbandonedEmailOptions) {
   const firstName = (order.customer.name || "").trim().split(" ")[0] || "Cliente";
   const absoluteImg = (src?: string) =>
     src ? (src.startsWith("http") ? src : `${BRAND_TRACKING_URL}${src.startsWith("/") ? "" : "/"}${src}`) : "";
@@ -413,7 +418,10 @@ export function renderAbandonedCartEmail(order: OrderEmailInput) {
     })
     .join("");
 
-  const shopHref = `${BRAND_TRACKING_URL}/checkout`;
+  const rawCta = (opts?.ctaHref ?? "").trim();
+  const shopHref = rawCta
+    ? (/^https?:\/\//i.test(rawCta) ? rawCta : `${BRAND_TRACKING_URL}${rawCta.startsWith("/") ? "" : "/"}${rawCta}`)
+    : `${BRAND_TRACKING_URL}/checkout`;
   const subject = `${firstName}, seu pedido ficou pela metade — finalize agora`;
 
   const html = `<!DOCTYPE html>
