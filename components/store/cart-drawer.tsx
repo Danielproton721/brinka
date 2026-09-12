@@ -319,15 +319,15 @@ export function CartDrawer() {
 
             {totalSavings > 0 && (
               <div className="flex items-center justify-between rounded-lg bg-[#f0fdf4] px-3 py-2">
-                <span className="text-xs font-bold text-[#15803d]">Desconto aplicado</span>
+                <span className="text-xs font-bold text-[#15803d]">Você economiza</span>
                 <span className="text-xs font-extrabold text-[#15803d]">
-                  -{formatCurrency(totalSavings)}
+                  {formatCurrency(totalSavings)}
                 </span>
               </div>
             )}
 
             <p className="text-[10px] text-[#8b8378] text-center">
-              Frete calculado no checkout
+              Frete grátis para todo o Brasil
             </p>
 
             {/* Checkout button */}
