@@ -8,15 +8,19 @@
 import { kvGet, kvSet } from "./kv-store";
 import type { OrderEmailInput } from "./order-email";
 
-const ORDER_TTL_SECONDS = 60 * 60 * 48; // 48h — janela folgada para o PIX confirmar
-
 export type StoredOrder = OrderEmailInput & {
   txid: string;
   createdAt: string;
+  // Gravado pelo painel na primeira leitura: a marca do gateway por txid
+  // (lib/gateways/active) expira em 3 dias, o pedido não.
+  gateway?: string;
 };
 
+// Sem prazo de validade: o pedido fica guardado para sempre e só sai quando
+// alguém apaga pelo painel (/api/admin/orders/delete). Antes expirava em 48h e
+// o histórico de pedidos se perdia.
 export async function saveOrder(txid: string, order: StoredOrder): Promise<void> {
-  await kvSet(`order:${txid}`, JSON.stringify(order), ORDER_TTL_SECONDS);
+  await kvSet(`order:${txid}`, JSON.stringify(order));
 }
 
 export async function getOrder(txid: string): Promise<StoredOrder | null> {

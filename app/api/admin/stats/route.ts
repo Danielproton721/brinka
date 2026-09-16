@@ -34,7 +34,13 @@ export async function GET(request: Request) {
     // Pendentes AGORA (não é série histórica): quantos pedidos abertos existem
     // neste momento. Vem do índice vivo, não do contador diário — "pendente" é
     // um estado que muda, não um evento que aconteceu num dia.
-    const recentes = await listRecentOrders(100)
+    // Pedidos agora são permanentes (o índice não é mais podado): recorta os
+    // últimos 7 dias aqui pra "abandonados" e a rosca manterem o mesmo sentido.
+    const seteDiasAtras = Date.now() - 7 * 24 * 60 * 60 * 1000
+    const recentes = (await listRecentOrders(100)).filter((o) => {
+      const criado = o.createdAt ? Date.parse(o.createdAt) : NaN
+      return Number.isFinite(criado) && criado >= seteDiasAtras
+    })
     const pendentesAgora = recentes.filter((o) => o.status === "aguardando").length
     const abandonadosAgora = recentes.filter((o) => o.status === "abandonado").length
 

@@ -78,6 +78,71 @@ function clearConfirmedOrder() {
   }
 }
 
+// PIX gerado e ainda não confirmado — persistido para sobreviver à ida ao app
+// do banco. No celular, o navegador de dentro do YouTube/Instagram recarrega ou
+// fecha a página enquanto a pessoa paga; sem isto ela volta, não vê o PIX nem a
+// confirmação e gera outro pedido. Caso real (16/09): PIX pago às 11:52 e mais
+// dois pedidos iguais às 11:59 e 12:03, sem conversão no Google Ads.
+const PENDING_PIX_STORAGE_KEY = 'brinka-pending-pix-v1';
+// Mesma janela em que o painel mostra o pedido como "Aguardando". Depois dela o
+// PIX só volta à tela se já estiver pago — senão a pessoa ficaria presa num
+// QR Code vencido, sem botão para gerar outro.
+const PENDING_PIX_RESTORE_MS = 30 * 60 * 1000;
+const PENDING_PIX_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+type PendingPix = {
+  txid: string;
+  qrCode: string;
+  qrCodeImage: string | null;
+  expiresAt?: string;
+  orderCode: string;
+  total: number;
+  shippingOptionId: ShippingOptionId;
+  customer: { name: string; email: string; phone: string };
+  address: {
+    cep: string;
+    street: string;
+    number: string;
+    complement: string;
+    neighborhood: string;
+    city: string;
+    stateUF: string;
+  };
+  savedAt: string;
+};
+
+function persistPendingPix(pix: PendingPix) {
+  try {
+    window.localStorage.setItem(PENDING_PIX_STORAGE_KEY, JSON.stringify(pix));
+  } catch {
+    // Sem storage o PIX continua funcionando enquanto a página estiver aberta.
+  }
+}
+
+function readPendingPix(): { pix: PendingPix; withinWindow: boolean } | null {
+  try {
+    const raw = window.localStorage.getItem(PENDING_PIX_STORAGE_KEY);
+    if (!raw) return null;
+    const pix = JSON.parse(raw) as PendingPix;
+    const ageMs = Date.now() - new Date(pix?.savedAt).getTime();
+    if (!pix?.txid || !pix?.qrCode || !Number.isFinite(ageMs) || ageMs < 0 || ageMs > PENDING_PIX_MAX_AGE_MS) {
+      clearPendingPix();
+      return null;
+    }
+    return { pix, withinWindow: ageMs < PENDING_PIX_RESTORE_MS };
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingPix() {
+  try {
+    window.localStorage.removeItem(PENDING_PIX_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 // Google Ads — conversao de compra.
 //
 // O send_to vem do ambiente, NUNCA chumbado aqui. Duas razoes:
@@ -384,6 +449,9 @@ function CheckoutContent() {
   // Código do pedido gerado no servidor (no /api/pix/create) e reaproveitado
   // na confirmação, para casar com o e-mail disparado pelo webhook.
   const pendingOrderCodeRef = useRef<string>('');
+  // Total cobrado no PIX gerado. Vale mais que o do carrinho quando a tela do PIX
+  // foi restaurada: o carrinho pode ter mudado ou esvaziado nesse meio tempo.
+  const pixTotalRef = useRef(0);
 
   const selectedShipping = SHIPPING_OPTIONS.find((option) => option.id === shippingOptionId) ?? SHIPPING_OPTIONS[0];
   const shippingPrice = selectedShipping.price;
@@ -405,8 +473,8 @@ function CheckoutContent() {
   useEffect(() => {
     if (!paymentConfirmed || !orderCode || purchaseConversionSentRef.current) return;
     purchaseConversionSentRef.current = true;
-    sendGoogleAdsPurchaseConversion(orderCode, checkoutTotal, { email, phone });
-  }, [paymentConfirmed, orderCode, checkoutTotal, email, phone]);
+    sendGoogleAdsPurchaseConversion(orderCode, confirmedOrder?.total ?? checkoutTotal, { email, phone });
+  }, [paymentConfirmed, orderCode, confirmedOrder, checkoutTotal, email, phone]);
 
   // Mantém a ref espelhada com o estado (lida pelas armadilhas de saída).
   useEffect(() => {
@@ -597,6 +665,7 @@ function CheckoutContent() {
   // esvazia o carrinho (a compra terminou) e volta para a loja.
   const handleCloseConfirmation = useCallback(() => {
     clearConfirmedOrder();
+    clearPendingPix();
     clearCart();
     setConfirmedOrder(null);
     setPaymentConfirmed(false);
@@ -807,6 +876,30 @@ function CheckoutContent() {
         });
       }
 
+      pixTotalRef.current = checkoutTotal;
+      if (data.txid && data.qrCode) {
+        persistPendingPix({
+          txid: data.txid,
+          qrCode: data.qrCode,
+          qrCodeImage: data.qrCodeImage ?? null,
+          expiresAt: data.expiresAt,
+          orderCode: data.orderCode || '',
+          total: checkoutTotal,
+          shippingOptionId,
+          customer: { name: name.trim(), email: email.trim(), phone },
+          address: {
+            cep: cep.trim(),
+            street: street.trim(),
+            number: number.trim(),
+            complement: complement.trim(),
+            neighborhood: neighborhood.trim(),
+            city: city.trim(),
+            stateUF: stateUF.trim().toUpperCase(),
+          },
+          savedAt: new Date().toISOString(),
+        });
+      }
+
       setTimeout(() => {
         document.getElementById('payment-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 100);
@@ -846,12 +939,13 @@ function CheckoutContent() {
             customerName: name,
             email,
             paymentMethod: 'pix',
-            total: checkoutTotal,
+            total: pixTotalRef.current || checkoutTotal,
             installments: 1,
             confirmedAt: new Date().toISOString(),
           };
           setConfirmedOrder(snapshot);
           persistConfirmedOrder(snapshot);
+          clearPendingPix();
           setPaymentConfirmed(true);
           // Rede de segurança (Camada 1): o webhook é a fonte primária do
           // e-mail; isto cobre o caso de a notificação do gateway não chegar.
@@ -866,11 +960,89 @@ function CheckoutContent() {
     checkPixPayment();
     const interval = window.setInterval(checkPixPayment, 5000);
 
+    // Na volta do app do banco o celular pode ter congelado o intervalo: consulta
+    // na hora em que a página fica visível, sem esperar o próximo ciclo.
+    const checkOnReturn = () => {
+      if (document.visibilityState === 'visible') checkPixPayment();
+    };
+    document.addEventListener('visibilitychange', checkOnReturn);
+    window.addEventListener('pageshow', checkOnReturn);
+
     return () => {
       stopped = true;
       window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', checkOnReturn);
+      window.removeEventListener('pageshow', checkOnReturn);
     };
   }, [cpf, email, issueOrderCode, orderCode, paymentConfirmed, pixData?.txid]);
+
+  // Restaura a tela do PIX quando a pessoa volta do app do banco com a página
+  // recarregada. Dentro da janela, reabre o PIX e a consulta acima retoma; fora
+  // dela, só reabre se já estiver pago (a consulta confirma no primeiro ciclo).
+  useEffect(() => {
+    if (readConfirmedOrder()) {
+      clearPendingPix();
+      return;
+    }
+    const saved = readPendingPix();
+    if (!saved) return;
+    const { pix } = saved;
+    let cancelled = false;
+
+    const restore = () => {
+      setName(pix.customer.name);
+      setEmail(pix.customer.email);
+      setPhone(pix.customer.phone);
+      setCep(pix.address.cep);
+      setStreet(pix.address.street);
+      setNumber(pix.address.number);
+      setComplement(pix.address.complement);
+      setNeighborhood(pix.address.neighborhood);
+      setCity(pix.address.city);
+      setStateUF(pix.address.stateUF);
+      setShippingOptionId(pix.shippingOptionId);
+      pendingOrderCodeRef.current = pix.orderCode;
+      pixTotalRef.current = pix.total;
+      setPayMethod('pix');
+      setCurrentStep(3);
+      setPixData({
+        qrCode: pix.qrCode,
+        qrCodeImage: pix.qrCodeImage,
+        expiresAt: pix.expiresAt,
+        txid: pix.txid,
+      });
+    };
+
+    if (saved.withinWindow) {
+      restore();
+      return;
+    }
+
+    fetch(`/api/payment/status?txid=${encodeURIComponent(pix.txid)}`, { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.paid) restore();
+        else clearPendingPix();
+      })
+      .catch(() => {
+        // Sem rede agora: mantém salvo para a próxima visita tentar de novo.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // "Refazer pedido": descarta o PIX na tela e volta ao formulário.
+  const handleDiscardPix = () => {
+    clearPendingPix();
+    setPixData(null);
+    setPixProof(null);
+    pendingOrderCodeRef.current = '';
+    pixTotalRef.current = 0;
+    setCurrentStep(1);
+  };
 
   const handleCopyPix = () => {
     if (pixData?.qrCode) {
@@ -1784,6 +1956,12 @@ function CheckoutContent() {
                   >
                     <p className="text-xs font-bold leading-relaxed text-amber-800">
                       O código do pedido será liberado automaticamente depois que o pagamento for confirmado.
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-amber-800">
+                      Ainda não pagou e precisa mudar algo?{' '}
+                      <button type="button" onClick={handleDiscardPix} className="font-bold underline underline-offset-2">
+                        Refazer pedido
+                      </button>
                     </p>
                   </motion.div>
                 )}

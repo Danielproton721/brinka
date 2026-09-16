@@ -232,6 +232,25 @@ export async function kvExpire(key: string, seconds: number): Promise<void> {
   await command(["EXPIRE", key, seconds]);
 }
 
+// PERSIST — tira o prazo de validade de uma chave que já existe (vira permanente).
+export async function kvPersist(key: string): Promise<void> {
+  if (!isKvConfigured) {
+    const entry = memRead(key);
+    if (entry) entry.expiresAt = null;
+    return;
+  }
+  await command(["PERSIST", key]);
+}
+
+// ZREM — tira um membro do sorted set (ex.: pedido apagado do índice).
+export async function kvZRem(key: string, member: string): Promise<void> {
+  if (!isKvConfigured) {
+    memZSet(key).delete(member);
+    return;
+  }
+  await command(["ZREM", key, member]);
+}
+
 // INCRBY — contador atômico. Usado pelas séries diárias de pedidos
 // (lib/order-stats.ts): 1 comando por evento, sem ler-modificar-gravar.
 export async function kvIncrBy(key: string, by: number): Promise<number> {

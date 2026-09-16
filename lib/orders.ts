@@ -13,15 +13,26 @@
 
 import {
   kvConfigured,
+  kvDel,
+  kvGet,
   kvGetJSON,
+  kvPersist,
+  kvSet,
   kvSetJSON,
   kvZAdd,
+  kvZRem,
   kvZRevRange,
-  kvZRemRangeByScore,
 } from "./kv-store"
 import type { StoredOrder } from "./order-store"
 import { getTxGateway } from "./gateways/active"
-import { getEmailManualEm } from "./manual-email"
+import {
+  abandonManualKey,
+  abandonSentKey,
+  confirmacaoAutoKey,
+  getEmailManualEm,
+  getEmailsPagoEm,
+  pagoManualKey,
+} from "./manual-email"
 import { recordOrderCreated, recordOrderPaid } from "./order-stats"
 
 export { kvConfigured }
@@ -31,19 +42,30 @@ export type AdminOrder = StoredOrder & {
   status: "pago" | "aguardando" | "abandonado"
   gateway?: string
   proofUrl?: string
+  // Último envio manual pelo painel: "pedido pendente" se não pago,
+  // "pagamento confirmado" se pago.
   emailManualEm?: string | null
+  // Só pedido pago: hora do e-mail automático de confirmação (webhook).
+  emailConfirmacaoEm?: string | null
 }
 
 // Sem confirmação por esse tempo (min) = consideramos abandonado.
 const ABANDONED_AFTER_MIN = 30
-// TTL da marca de "pago" — alinhado com a janela do pedido (48h) no order-store.
-const PAID_TTL_SECONDS = 60 * 60 * 48
-// Poda do índice: ignora/limpa pedidos com mais de 7 dias.
-const INDEX_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 7
+// Pedidos são PERMANENTES: pedido, marca de pago e índice não têm prazo de
+// validade. Só saem quando alguém apaga pelo painel (deleteOrder).
 
 const orderKey = (txid: string) => `order:${txid}`
 const paidKey = (txid: string) => `paid:${txid}`
 const ORDERS_INDEX = "orders:index"
+
+// Tudo que pertence a um pedido no KV — usado pra tornar permanente e pra apagar.
+const chavesDoPedido = (txid: string) => [
+  orderKey(txid),
+  paidKey(txid),
+  confirmacaoAutoKey(txid),
+  abandonManualKey(txid),
+  pagoManualKey(txid),
+]
 
 // --- Escrita (chamada pelo CHECKOUT, não pelo painel) ----------------------
 
@@ -52,14 +74,14 @@ const ORDERS_INDEX = "orders:index"
 export async function indexOrder(txid: string, createdAtMs: number): Promise<void> {
   if (!kvConfigured() || !txid) return
   await kvZAdd(ORDERS_INDEX, createdAtMs, txid)
-  // Série diária pro painel: sobrevive à poda do índice (7d) e ao TTL do
-  // snapshot (48h), então o gráfico de 45 dias não fica com buraco.
+  // Série diária pro gráfico de 45 dias: 1 comando por evento, sem precisar
+  // ler todos os pedidos do período.
   await recordOrderCreated(createdAtMs).catch(() => {})
 }
 
 export async function markOrderPaid(txid: string): Promise<void> {
   if (!kvConfigured() || !txid) return
-  await kvSetJSON(paidKey(txid), 1, PAID_TTL_SECONDS)
+  await kvSetJSON(paidKey(txid), 1)
   // Conta a venda do dia. O `total` do pedido está em REAIS → centavos.
   // recordOrderPaid é idempotente por txid: webhook e polling chamam esta
   // função pro mesmo pedido e a venda não pode contar duas vezes.
@@ -83,22 +105,50 @@ export async function setOrderProofUrl(txid: string, proofUrl: string): Promise<
   const order = await kvGetJSON<StoredOrder & { proofUrl?: string }>(orderKey(txid))
   if (!order) return
   order.proofUrl = proofUrl
-  await kvSetJSON(orderKey(txid), order, PAID_TTL_SECONDS)
+  await kvSetJSON(orderKey(txid), order)
+}
+
+// --- Permanência e exclusão ------------------------------------------------
+
+// Pedidos gravados antes desta mudança ainda carregam o prazo antigo (48h). Na
+// primeira leitura do painel depois do deploy, tira o prazo de todos os que
+// estão no índice. Roda uma vez (marca abaixo); se falhar no meio, a próxima
+// leitura tenta de novo.
+const MARCA_PERMANENTE = "orders:permanente:v1"
+
+async function tornarPedidosPermanentes(): Promise<void> {
+  if (await kvGet(MARCA_PERMANENTE)) return
+  const txids = await kvZRevRange(ORDERS_INDEX, 0, -1)
+  for (const txid of txids) {
+    await Promise.all(chavesDoPedido(txid).map((k) => kvPersist(k)))
+  }
+  await kvSet(MARCA_PERMANENTE, new Date().toISOString())
+}
+
+// Apaga o pedido de vez — só pelo painel, por escolha do dono. As séries
+// diárias do gráfico (lib/order-stats.ts) não mudam: a venda do dia continua contada.
+export async function deleteOrder(txid: string): Promise<boolean> {
+  if (!kvConfigured() || !txid) return false
+  const existia = (await kvGet(orderKey(txid))) != null
+  await Promise.all([...chavesDoPedido(txid), abandonSentKey(txid), `status:${txid}`].map((k) => kvDel(k)))
+  await kvZRem(ORDERS_INDEX, txid)
+  return existia
 }
 
 // --- Leitura (chamada pelo PAINEL) -----------------------------------------
 
+// Sem poda: o índice guarda todos os pedidos. O painel lista os `limit` mais
+// recentes; os mais antigos continuam guardados no KV.
 export async function listRecentOrders(limit = 100): Promise<AdminOrder[]> {
   if (!kvConfigured()) return []
 
-  // Limpa entradas antigas do índice (mantém a listagem enxuta).
-  await kvZRemRangeByScore(ORDERS_INDEX, 0, Date.now() - INDEX_MAX_AGE_MS)
+  await tornarPedidosPermanentes().catch((e) => console.error("[ORDERS] falha ao tornar pedidos permanentes:", e))
 
   const txids = await kvZRevRange(ORDERS_INDEX, 0, limit - 1)
   const out: AdminOrder[] = []
   for (const txid of txids) {
     const order = await kvGetJSON<StoredOrder>(orderKey(txid))
-    if (!order) continue // expirou (TTL 48h) — ignora a entrada órfã do índice
+    if (!order) continue // gravado antes de virar permanente e já tinha expirado
     const paid = await isOrderPaid(txid)
     let status: AdminOrder["status"]
     if (paid) {
@@ -109,11 +159,23 @@ export async function listRecentOrders(limit = 100): Promise<AdminOrder[]> {
       status = ageMin >= ABANDONED_AFTER_MIN ? "abandonado" : "aguardando"
     }
     // Qual gateway processou este pedido (pagou/medusa/centurion) — pro painel
-    // deixar claro pra onde cada pagamento foi de fato.
-    const gateway = (await getTxGateway(txid)) ?? undefined
-    // Só pedido não pago mostra o selo — poupa um comando no KV por pedido pago.
-    const emailManualEm = paid ? null : await getEmailManualEm(txid)
-    out.push({ ...order, txid, status, gateway, emailManualEm })
+    // deixar claro pra onde cada pagamento foi de fato. A marca por txid expira
+    // em 3 dias; na primeira leitura ela é copiada pro pedido, que é permanente.
+    let gateway = order.gateway
+    if (!gateway) {
+      gateway = (await getTxGateway(txid)) ?? undefined
+      if (gateway) await kvSetJSON(orderKey(txid), { ...order, gateway }).catch(() => {})
+    }
+    let emailManualEm: string | null = null
+    let emailConfirmacaoEm: string | null = null
+    if (paid) {
+      const emails = await getEmailsPagoEm(txid)
+      emailManualEm = emails.manualEm
+      emailConfirmacaoEm = emails.automaticoEm
+    } else {
+      emailManualEm = await getEmailManualEm(txid)
+    }
+    out.push({ ...order, txid, status, gateway, emailManualEm, emailConfirmacaoEm })
   }
   return out
 }

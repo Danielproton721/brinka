@@ -18,8 +18,6 @@ export type SendOrderEmailResult =
   | { ok: true; id: string | null; deduped?: boolean }
   | { ok: false; error: string; status: number };
 
-const EMAIL_LOCK_TTL_SECONDS = 60 * 60 * 48; // 48h
-
 export function isValidEmail(value: unknown) {
   return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
@@ -142,7 +140,9 @@ export async function dispatchOrderEmailOnce(
   order: OrderEmailInput,
 ): Promise<SendOrderEmailResult> {
   const lockKey = `emailed:${idempotencyKey}`;
-  const acquired = await kvSetNx(lockKey, new Date().toISOString(), EMAIL_LOCK_TTL_SECONDS);
+  // Sem prazo de validade: a trava guarda a hora do envio, que o painel mostra
+  // no pedido pago — e o pedido agora fica guardado para sempre.
+  const acquired = await kvSetNx(lockKey, new Date().toISOString());
   if (!acquired) {
     return { ok: true, id: null, deduped: true };
   }
