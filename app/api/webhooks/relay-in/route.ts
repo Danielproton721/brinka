@@ -31,6 +31,7 @@ function extractTxid(payload: any): string | null {
     "data.transactionId",
     "transaction.transactionId",
     "vendaId",
+    "dados.vendaId",
     "data.vendaId",
     "venda.id",
     "data.id",

@@ -198,17 +198,25 @@ export async function POST(request: Request) {
       name: name.trim(),
       email: email.trim(),
       cpfDigits,
-      phoneDigits,
-      ip: buyerIp,
       title: title || "BRINKA Brinquedos",
       postbackUrl,
     });
     if (!result.ok) {
-      console.error(`[PIX/Medusa] Erro (${result.status}):`, result.error);
+      console.error(`[PIX/Medusa] Erro (${result.status}/${result.code ?? "-"}):`, result.error);
       if (result.status === 401) {
         return NextResponse.json({ error: "Chave de autenticação inválida na MedusaPay." }, { status: 401 });
       }
+      if (result.status === 400) {
+        return NextResponse.json({ error: result.error || "Dados recusados pela MedusaPay." }, { status: 400 });
+      }
       return NextResponse.json({ error: result.error || "Falha na MedusaPay.", gateway: result.raw }, { status: 502 });
+    }
+    if (result.simulated) {
+      console.error("[PIX/Medusa] conta em Modo Teste — venda simulada, sem PIX real.");
+      return NextResponse.json(
+        { error: "MedusaPay em Modo Teste: a conta ainda não gera PIX real." },
+        { status: 502 },
+      );
     }
     if (!result.qrCode) {
       return NextResponse.json({ error: "MedusaPay não retornou QR Code PIX válido." }, { status: 502 });
