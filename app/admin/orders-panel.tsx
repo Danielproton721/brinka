@@ -26,6 +26,13 @@ const STATUS: Record<AdminOrder["status"], { label: string; cls: string; desc: s
   },
 }
 
+const FILTROS: { id: AdminOrder["status"] | "todos"; label: string; ativo: string; vazio: string }[] = [
+  { id: "todos", label: "Todos", ativo: "border-foreground bg-foreground text-background", vazio: "ainda" },
+  { id: "pago", label: "Pagos", ativo: "border-emerald-300 bg-emerald-100 text-emerald-800", vazio: "pago" },
+  { id: "aguardando", label: "Aguardando", ativo: "border-amber-300 bg-amber-100 text-amber-800", vazio: "aguardando pagamento" },
+  { id: "abandonado", label: "Abandonados", ativo: "border-red-300 bg-red-100 text-red-800", vazio: "abandonado" },
+]
+
 function fmtDate(iso?: string) {
   if (!iso) return "—"
   return new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
@@ -55,6 +62,7 @@ export function OrdersPanel({ orders, kvOk }: { orders: AdminOrder[]; kvOk: bool
   const [enviadosAgora, setEnviadosAgora] = useState<Record<string, string>>({})
   // Some da lista na hora, sem esperar o refresh do servidor.
   const [apagados, setApagados] = useState<string[]>([])
+  const [filtro, setFiltro] = useState<AdminOrder["status"] | "todos">("todos")
 
   if (!kvOk) {
     return (
@@ -85,15 +93,44 @@ export function OrdersPanel({ orders, kvOk }: { orders: AdminOrder[]; kvOk: bool
     router.refresh()
   }
 
-  const visiveis = orders.filter((o) => !apagados.includes(o.txid))
+  const naoApagados = orders.filter((o) => !apagados.includes(o.txid))
+  const visiveis = filtro === "todos" ? naoApagados : naoApagados.filter((o) => o.status === filtro)
+  const quantos = (f: AdminOrder["status"] | "todos") =>
+    f === "todos" ? naoApagados.length : naoApagados.filter((o) => o.status === f).length
 
   return (
     <>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {FILTROS.map((f) => {
+          const on = filtro === f.id
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setFiltro(f.id)}
+              aria-pressed={on}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-bold transition-colors ${
+                on ? f.ativo : "border-border bg-card text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {f.label}
+              <span className={`text-xs font-bold ${on ? "" : "text-muted-foreground/70"}`}>{quantos(f.id)}</span>
+            </button>
+          )
+        })}
+      </div>
+
       <div className="mb-4 flex flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-4">
         <span><span className="font-bold text-emerald-700">Pago</span>: pagamento confirmado</span>
         <span><span className="font-bold text-amber-700">Aguardando</span>: gerado, cliente ainda pode pagar (até 30 min)</span>
         <span><span className="font-bold text-red-700">Abandonado</span>: gerou e não voltou pra concluir</span>
       </div>
+
+      {visiveis.length === 0 && (
+        <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
+          Nenhum pedido {FILTROS.find((f) => f.id === filtro)?.vazio}.
+        </div>
+      )}
 
       {/* Mobile: cada pedido vira um card (a tabela não cabe na tela) */}
       <div className="space-y-3 md:hidden">
