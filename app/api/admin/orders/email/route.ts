@@ -3,7 +3,10 @@ import { NextResponse } from "next/server"
 import { isAuthed } from "@/lib/admin-auth"
 import { kvDel, kvGet, kvSet, kvSetNx } from "@/lib/kv-store"
 import {
+  MANUAL_CTA_COMBO,
   MANUAL_CTA_HREF,
+  MIN_PRODUTOS_COMBO,
+  OFERTA_COMBO,
   abandonManualKey,
   abandonManualLockKey,
   abandonSentKey,
@@ -53,10 +56,20 @@ export async function POST(request: Request) {
   }
 
   if (pago) return erro(409, "Pedido já pago — use o e-mail de pagamento confirmado.")
-  return enviarPedidoPendente(txid, order, confirmarReenvio)
+
+  const comDesconto = body.tipo === "pendente-desconto"
+  if (comDesconto && (order.items?.length ?? 0) < MIN_PRODUTOS_COMBO) {
+    return erro(422, `O desconto só vale para pedido com ${MIN_PRODUTOS_COMBO} produtos diferentes.`)
+  }
+  return enviarPedidoPendente(txid, order, confirmarReenvio, comDesconto)
 }
 
-async function enviarPedidoPendente(txid: string, order: StoredOrder, confirmarReenvio: boolean) {
+async function enviarPedidoPendente(
+  txid: string,
+  order: StoredOrder,
+  confirmarReenvio: boolean,
+  comDesconto: boolean,
+) {
   const [sentVal, manualEm] = await Promise.all([kvGet(abandonSentKey(txid)), kvGet(abandonManualKey(txid))])
   if ((sentVal || manualEm) && !confirmarReenvio) {
     return erro(409, "Esse cliente já recebeu este e-mail.", {
@@ -73,7 +86,9 @@ async function enviarPedidoPendente(txid: string, order: StoredOrder, confirmarR
     return erro(429, "Já tem um envio em andamento pra esse pedido. Aguarde um minuto e tente de novo.")
   }
 
-  const result = await sendAbandonedCartEmail(order, { ctaHref: MANUAL_CTA_HREF })
+  const result = comDesconto
+    ? await sendAbandonedCartEmail(order, { ctaHref: MANUAL_CTA_COMBO, oferta: OFERTA_COMBO })
+    : await sendAbandonedCartEmail(order, { ctaHref: MANUAL_CTA_HREF })
   if (!result.ok) {
     await kvDel(lockKey).catch(() => {})
     return erro(result.status, result.error)

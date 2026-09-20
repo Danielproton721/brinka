@@ -7,6 +7,7 @@ import {
   createCheckoutSession,
   getClientIp,
 } from "@/lib/checkout-security"
+import { CUPOM_PADRAO, pctDoCupom } from "@/lib/coupons"
 import { products } from "@/lib/products"
 
 export const dynamic = "force-dynamic"
@@ -20,10 +21,9 @@ type CheckoutItemInput = {
 const MAX_DISTINCT_ITEMS = 50
 const MAX_ITEM_QUANTITY = 20
 
-// Regras do total — DEVEM espelhar o front (cart-context COUPON_PCT=5 e
-// SHIPPING_OPTIONS do checkout). O server calcula por conta própria: o cliente
-// não decide o desconto (cupom fixo) nem inventa frete (só valores da tabela).
-const COUPON_PCT = 5
+// Regras do total — o percentual do cupom sai de lib/coupons (mesma tabela que
+// o carrinho usa) e o frete só aceita valor de tabela. O cliente manda o código
+// do cupom; quem decide o desconto é o servidor.
 const VALID_SHIPPING_CENTS = new Set([0, 1490]) // Frete grátis / Expresso R$14,90
 
 function getItemPriceCents(item: CheckoutItemInput) {
@@ -94,7 +94,12 @@ export async function POST(request: Request) {
 
   // Total final = subtotal - cupom (server aplica) + frete (só valor de tabela).
   // Assim a sessão assina o MESMO valor que o PIX/cartão vai cobrar.
-  const discountCents = body?.coupon ? Math.round((cart.amountCents * COUPON_PCT) / 100) : 0
+  // `coupon` vem como código; `true` é o formato antigo e vale o cupom padrão.
+  const produtosDiferentes = Array.isArray(body?.items) ? body.items.length : 0
+  const couponPct = body?.coupon === true
+    ? pctDoCupom(CUPOM_PADRAO, produtosDiferentes)
+    : pctDoCupom(body?.coupon, produtosDiferentes)
+  const discountCents = couponPct > 0 ? Math.round((cart.amountCents * couponPct) / 100) : 0
   const shipCents = Number(body?.shippingCents)
   const shippingCents = VALID_SHIPPING_CENTS.has(shipCents) ? shipCents : 0
   const totalCents = Math.max(0, cart.amountCents - discountCents) + shippingCents

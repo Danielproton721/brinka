@@ -1,7 +1,10 @@
+import { CUPOM_COMBO, CUPOM_COMBO_PCT } from "./coupons"
 import { kvGet } from "./kv-store"
 
-// "abandonado" = pedido pendente (não pago). "pago" = pagamento confirmado.
-export const TIPOS_EMAIL_MANUAL = ["abandonado", "pago"] as const
+// "abandonado" = pedido pendente (não pago). "pendente-desconto" = o mesmo, com
+// desconto pra quem montou o pedido com os dois carrinhos. "pago" = pagamento
+// confirmado.
+export const TIPOS_EMAIL_MANUAL = ["abandonado", "pendente-desconto", "pago"] as const
 export type TipoEmailManual = (typeof TIPOS_EMAIL_MANUAL)[number]
 
 export function isTipoEmailManual(v: unknown): v is TipoEmailManual {
@@ -10,6 +13,11 @@ export function isTipoEmailManual(v: unknown): v is TipoEmailManual {
 
 // Não é /checkout: o carrinho fica no localStorage do navegador original e abriria vazio.
 export const MANUAL_CTA_HREF = "/"
+// Link que já aplica o cupom no carrinho do cliente (lido em lib/cart-context).
+export const MANUAL_CTA_COMBO = `/?cupom=${CUPOM_COMBO}`
+export const OFERTA_COMBO = { pct: CUPOM_COMBO_PCT, cupom: CUPOM_COMBO }
+// O cupom do combo só vale com 2 produtos diferentes — o e-mail respeita isso.
+export const MIN_PRODUTOS_COMBO = 2
 
 // Tem que ser a mesma chave de trava usada em app/api/abandoned/check.
 export const abandonSentKey = (txid: string) => `abandon:sent:${txid}`

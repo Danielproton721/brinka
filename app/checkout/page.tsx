@@ -23,7 +23,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PixIcon, MastercardIcon, VisaIcon, EloIcon } from '@/components/store/payment-icons';
 import { PaymentFlags } from '@/components/store/payment-flags';
 import { ReputationSeals } from '@/components/store/reputation-seals';
-import { useCart, COUPON_CODE } from '@/lib/cart-context';
+import { useCart } from '@/lib/cart-context';
+import { acharCupom } from '@/lib/coupons';
 
 const ORDER_LOOKUP_STORAGE_KEY = 'brinka-order-lookup-v1';
 
@@ -363,13 +364,18 @@ function CheckoutContent() {
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const handleApplyCoupon = () => {
-    if (couponInput.trim().toUpperCase() === COUPON_CODE) {
-      applyCoupon();
-      setCouponInput("");
-      setCouponError("");
-    } else {
+    const cupom = acharCupom(couponInput);
+    if (!cupom) {
       setCouponError("Cupom inválido ou expirado.");
+      return;
     }
+    if (items.length < cupom.minProdutos) {
+      setCouponError(`Este cupom vale com ${cupom.minProdutos} produtos diferentes no carrinho.`);
+      return;
+    }
+    applyCoupon(cupom.code);
+    setCouponInput("");
+    setCouponError("");
   };
 
   const [isMounted, setIsMounted] = useState(false);
@@ -719,7 +725,8 @@ function CheckoutContent() {
         })),
         // O server recalcula o total (subtotal - cupom + frete) e assina ESSE
         // valor — pra a sessão bater com o total cobrado no PIX/cartão.
-        coupon: couponApplied,
+        // Vai o CÓDIGO: o servidor é quem decide o percentual (lib/coupons).
+        coupon: couponApplied ? couponCode : undefined,
         shippingCents: Math.round(shippingPrice * 100),
       }),
     });

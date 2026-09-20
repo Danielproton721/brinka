@@ -1,3 +1,5 @@
+import { CUPOM_PADRAO } from "./coupons";
+
 export type OrderEmailItem = {
   id: number | string;
   name: string;
@@ -387,6 +389,10 @@ export function renderShippedEmail(order: OrderEmailInput, trackingCode: string)
 export type AbandonedEmailOptions = {
   // Link do botão; sem valor vai pro /checkout, como o automático sempre fez.
   ctaHref?: string
+  // Desconto oferecido na recuperação (ex.: 10% pra quem montou o pedido com os
+  // dois carrinhos). O cupom precisa existir em lib/coupons, senão o desconto
+  // aparece no e-mail e não é aceito no checkout.
+  oferta?: { pct: number; cupom: string }
 }
 
 // E-mail de PEDIDO PENDENTE (o cliente gerou o PIX mas não pagou). Disparado
@@ -422,7 +428,19 @@ export function renderAbandonedCartEmail(order: OrderEmailInput, opts?: Abandone
   const shopHref = rawCta
     ? (/^https?:\/\//i.test(rawCta) ? rawCta : `${BRAND_TRACKING_URL}${rawCta.startsWith("/") ? "" : "/"}${rawCta}`)
     : `${BRAND_TRACKING_URL}/checkout`;
-  const subject = `${firstName}, seu pedido ficou pela metade — finalize agora`;
+
+  // Desconto de recuperação: calculado sobre os PRODUTOS (subtotal) e somado ao
+  // frete do pedido — a mesma conta do carrinho, pro valor do e-mail bater com
+  // o que o checkout vai cobrar.
+  const oferta = opts?.oferta && opts.oferta.pct > 0 ? opts.oferta : null;
+  const descontoOferta = oferta ? Math.round(order.subtotal * oferta.pct) / 100 : 0;
+  const totalComOferta = oferta
+    ? Math.max(0, order.subtotal - descontoOferta) + (Number(order.shipping) || 0)
+    : order.total;
+
+  const subject = oferta
+    ? `${firstName}, ${oferta.pct}% de desconto nos dois carrinhos — só falta finalizar`
+    : `${firstName}, seu pedido ficou pela metade — finalize agora`;
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -439,10 +457,14 @@ export function renderAbandonedCartEmail(order: OrderEmailInput, opts?: Abandone
     <div style="background:${C.cardSofter};padding:26px 30px;text-align:center;border-bottom:1px solid ${C.line};">
       <p style="margin:0 0 6px;font-size:34px;line-height:1;">🚚</p>
       <h1 style="margin:0 0 8px;font-size:20px;color:${C.primary};font-weight:800;line-height:1.25;">
-        ${escapeHtml(firstName)}, seu pedido ficou pela metade!
+        ${oferta
+          ? `${escapeHtml(firstName)}, separei ${oferta.pct}% de desconto pra você!`
+          : `${escapeHtml(firstName)}, seu pedido ficou pela metade!`}
       </h1>
       <p style="margin:0;font-size:13px;color:${C.muted};line-height:1.5;">
-        Você separou ótimos produtos mas o pagamento não foi concluído. Seus itens ainda estão reservados — finalize agora antes que acabe o estoque.
+        ${oferta
+          ? `Você montou o pedido com os dois carrinhos e o pagamento não foi concluído. Para fechar agora, o desconto de ${oferta.pct}% já vem aplicado no botão abaixo.`
+          : "Você separou ótimos produtos mas o pagamento não foi concluído. Seus itens ainda estão reservados — finalize agora antes que acabe o estoque."}
       </p>
     </div>
 
@@ -452,19 +474,34 @@ export function renderAbandonedCartEmail(order: OrderEmailInput, opts?: Abandone
         ${itemRows}
       </table>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${C.line};margin-top:4px;">
+        ${oferta ? `
+        <tr>
+          <td style="padding:10px 0 2px;color:${C.muted};font-size:13px;">Total do pedido</td>
+          <td align="right" style="padding:10px 0 2px;color:${C.mutedSoft};font-size:13px;text-decoration:line-through;">${formatBRL(order.total)}</td>
+        </tr>
+        <tr>
+          <td style="padding:2px 0;color:${C.accent};font-size:13px;font-weight:700;">Desconto de ${oferta.pct}% (cupom ${escapeHtml(oferta.cupom)})</td>
+          <td align="right" style="padding:2px 0;color:${C.accent};font-size:13px;font-weight:700;">- ${formatBRL(descontoOferta)}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0 12px;color:${C.primary};font-size:14px;font-weight:800;">Total com desconto</td>
+          <td align="right" style="padding:8px 0 12px;color:${C.green};font-size:18px;font-weight:800;">${formatBRL(totalComOferta)}</td>
+        </tr>` : `
         <tr>
           <td style="padding:12px 0;color:${C.primary};font-size:14px;font-weight:800;">Total</td>
           <td align="right" style="padding:12px 0;color:${C.green};font-size:16px;font-weight:800;">${formatBRL(order.total)}</td>
-        </tr>
+        </tr>`}
       </table>
     </div>
 
     <div style="padding:8px 30px 26px;text-align:center;">
       <a href="${escapeHtml(shopHref)}" style="display:block;background:${C.accent};color:${C.primary};text-decoration:none;padding:0 18px;border-radius:999px;font-size:15px;font-weight:800;line-height:56px;min-height:56px;box-shadow:0 8px 18px rgba(255,90,31,0.32);letter-spacing:0.4px;text-transform:uppercase;">
-        Finalizar meu pedido
+        ${oferta ? `Pegar meus ${oferta.pct}% de desconto` : "Finalizar meu pedido"}
       </a>
       <p style="margin:12px 0 0;font-size:12px;color:${C.muted};line-height:1.5;">
-        Dica: use o cupom <strong style="color:${C.accent};">PRIMEIRACOMPRA</strong> e ganhe 5% de desconto ao concluir.
+        ${oferta
+          ? `O cupom <strong style="color:${C.accent};">${escapeHtml(oferta.cupom)}</strong> entra sozinho pelo botão. Se precisar digitar, é esse mesmo — vale com os dois carrinhos no pedido.`
+          : `Dica: use o cupom <strong style="color:${C.accent};">${CUPOM_PADRAO}</strong> e ganhe 5% de desconto ao concluir.`}
       </p>
     </div>
 

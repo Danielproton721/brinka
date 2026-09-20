@@ -53,7 +53,20 @@ function fmtCurto(iso?: string | null) {
 
 // Não pago → e-mail de pedido pendente. Pago → e-mail de pagamento confirmado.
 const podeEnviarEmail = (o: AdminOrder) => Boolean(o.customer?.email)
-const tipoEmailDo = (o: AdminOrder) => (o.status === "pago" ? "pago" : "abandonado")
+
+const MODELOS = {
+  abandonado: "Pedido pendente",
+  "pendente-desconto": "Pedido pendente com 10% de desconto",
+  pago: "Pagamento confirmado",
+} as const
+type TipoEmail = keyof typeof MODELOS
+
+// O desconto de 10% só aparece pra quem montou o pedido com 2 produtos
+// diferentes (é a regra do cupom COMBO10 em lib/coupons).
+function modelosDo(o: AdminOrder): TipoEmail[] {
+  if (o.status === "pago") return ["pago"]
+  return (o.items?.length ?? 0) >= 2 ? ["abandonado", "pendente-desconto"] : ["abandonado"]
+}
 
 export function OrdersPanel({ orders, kvOk }: { orders: AdminOrder[]; kvOk: boolean }) {
   const router = useRouter()
@@ -382,10 +395,6 @@ function ConfirmacaoAutoSelo({ em }: { em: string | null }) {
   )
 }
 
-const MODELOS = {
-  abandonado: "Pedido pendente",
-  pago: "Pagamento confirmado",
-} as const
 type JaEnviado = { automatico: boolean; automaticoEm?: string | null; manualEm: string | null }
 
 function textoJaEnviado(j: JaEnviado) {
@@ -405,7 +414,8 @@ function EnviarEmailModal({
   onFechar: () => void
   onEnviado: (txid: string, enviadoEm: string) => void
 }) {
-  const tipo = pedido ? tipoEmailDo(pedido) : "abandonado"
+  const opcoes: TipoEmail[] = pedido ? modelosDo(pedido) : ["abandonado"]
+  const [tipo, setTipo] = useState<TipoEmail>(opcoes[0])
   const [assunto, setAssunto] = useState<string | null>(null)
   const [erroAssunto, setErroAssunto] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
@@ -413,6 +423,12 @@ function EnviarEmailModal({
   const [jaEnviado, setJaEnviado] = useState<JaEnviado | null>(null)
 
   const txid = pedido?.txid ?? ""
+  const primeiraOpcao = opcoes[0]
+
+  // Trocou de pedido: volta pro modelo padrão daquele pedido.
+  useEffect(() => {
+    setTipo(primeiraOpcao)
+  }, [txid, primeiraOpcao])
 
   useEffect(() => {
     if (!txid) return
@@ -488,7 +504,22 @@ function EnviarEmailModal({
           <div className="mt-4 space-y-3 text-sm">
             <div>
               <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Modelo</span>
-              <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground">{MODELOS[tipo]}</div>
+              {opcoes.length > 1 ? (
+                <select
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value as TipoEmail)}
+                  disabled={enviando}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  {opcoes.map((op) => (
+                    <option key={op} value={op}>
+                      {MODELOS[op]}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground">{MODELOS[tipo]}</div>
+              )}
             </div>
 
             <div>

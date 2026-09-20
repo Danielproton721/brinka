@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 
+import { CUPOM_PADRAO, acharCupom, pctDoCupom } from "./coupons"
+
 export interface CartItem {
   id: number
   slug: string
@@ -25,7 +27,8 @@ interface CartContextType {
   couponCode: string
   couponPct: number
   couponDiscount: number
-  applyCoupon: () => void
+  // Sem código = cupom padrão (o de 5%), como era antes.
+  applyCoupon: (code?: string) => void
   removeCoupon: () => void
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void
   removeItem: (id: number) => void
@@ -41,8 +44,9 @@ const CartContext = createContext<CartContextType | null>(null)
 const STORAGE_KEY = "brinka-cart"
 // Cupom do popup de boas-vindas. Aplicado aqui, o desconto flui pro carrinho,
 // checkout e valor cobrado no gateway (tudo deriva do totalPrice do contexto).
-export const COUPON_CODE = "PRIMEIRACOMPRA"
+export const COUPON_CODE = CUPOM_PADRAO
 export const COUPON_PCT = 5
+// Guarda o CÓDIGO do cupom. Valor "1" é do formato antigo (só existia um cupom).
 const COUPON_KEY = "fn_coupon_applied"
 
 function getValidCompareAtPrice(item: Pick<CartItem, "price" | "compareAtPrice">) {
@@ -78,12 +82,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [couponApplied, setCouponApplied] = useState(false)
+  const [couponCodeApplied, setCouponCodeApplied] = useState<string | null>(null)
 
   useEffect(() => {
     setItems(loadCart())
     try {
-      setCouponApplied(localStorage.getItem(COUPON_KEY) === "1")
+      const salvo = localStorage.getItem(COUPON_KEY)
+      const codigoSalvo = salvo === "1" ? CUPOM_PADRAO : salvo
+      if (acharCupom(codigoSalvo)) setCouponCodeApplied(acharCupom(codigoSalvo)!.code)
+
+      // Cupom que veio no link (ex.: o e-mail de recuperação manda /?cupom=COMBO10).
+      const daUrl = acharCupom(new URLSearchParams(window.location.search).get("cupom"))
+      if (daUrl) {
+        setCouponCodeApplied(daUrl.code)
+        localStorage.setItem(COUPON_KEY, daUrl.code)
+      }
     } catch {
       // silent fail
     }
@@ -103,20 +116,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     0
   )
   const totalSavings = Math.max(0, totalCompareAtPrice - totalPrice)
+  // O percentual depende do carrinho: o cupom dos dois carrinhos só vale com 2
+  // produtos diferentes. Se o cliente tirar um, o desconto cai sozinho — igual
+  // ao que o servidor calcula em /api/checkout/session.
+  const couponPct = pctDoCupom(couponCodeApplied, items.length)
+  const couponApplied = couponPct > 0
   // Arredondado pro centavo — este valor é descontado do total cobrado no gateway.
-  const couponDiscount = couponApplied ? Math.round(totalPrice * COUPON_PCT) / 100 : 0
+  const couponDiscount = couponApplied ? Math.round(totalPrice * couponPct) / 100 : 0
 
-  const applyCoupon = useCallback(() => {
-    setCouponApplied(true)
+  const applyCoupon = useCallback((code?: string) => {
+    const cupom = acharCupom(code ?? CUPOM_PADRAO)
+    if (!cupom) return
+    setCouponCodeApplied(cupom.code)
     try {
-      localStorage.setItem(COUPON_KEY, "1")
+      localStorage.setItem(COUPON_KEY, cupom.code)
     } catch {
       // silent fail
     }
   }, [])
 
   const removeCoupon = useCallback(() => {
-    setCouponApplied(false)
+    setCouponCodeApplied(null)
     try {
       localStorage.removeItem(COUPON_KEY)
     } catch {
@@ -174,8 +194,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         totalCompareAtPrice,
         totalSavings,
         couponApplied,
-        couponCode: COUPON_CODE,
-        couponPct: COUPON_PCT,
+        couponCode: couponCodeApplied ?? COUPON_CODE,
+        couponPct,
         couponDiscount,
         applyCoupon,
         removeCoupon,

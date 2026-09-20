@@ -3,7 +3,8 @@
 import { useEffect, useCallback, useState } from "react"
 import Link from "next/link"
 import { X, Minus, Plus, Trash2, ShoppingBag, TicketPercent } from "lucide-react"
-import { useCart, COUPON_CODE } from "@/lib/cart-context"
+import { useCart } from "@/lib/cart-context"
+import { acharCupom } from "@/lib/coupons"
 
 function formatCurrency(value: number) {
   return `R$ ${value.toFixed(2).replace(".", ",")}`
@@ -34,14 +35,19 @@ export function CartDrawer() {
   const [couponError, setCouponError] = useState("")
 
   const handleApplyCoupon = useCallback(() => {
-    if (couponInput.trim().toUpperCase() === COUPON_CODE) {
-      applyCoupon()
-      setCouponInput("")
-      setCouponError("")
-    } else {
+    const cupom = acharCupom(couponInput)
+    if (!cupom) {
       setCouponError("Cupom inválido ou expirado.")
+      return
     }
-  }, [couponInput, applyCoupon])
+    if (items.length < cupom.minProdutos) {
+      setCouponError(`Este cupom vale com ${cupom.minProdutos} produtos diferentes no carrinho.`)
+      return
+    }
+    applyCoupon(cupom.code)
+    setCouponInput("")
+    setCouponError("")
+  }, [couponInput, applyCoupon, items.length])
   const handleCloseCart = useCallback(() => {
     closeCart()
   }, [closeCart])
