@@ -14,10 +14,17 @@ import {
   isTipoEmailManual,
   pagoManualKey,
   pagoManualLockKey,
+  reativacaoManualKey,
+  reativacaoManualLockKey,
 } from "@/lib/manual-email"
 import { getOrder, type StoredOrder } from "@/lib/order-store"
 import { isOrderPaid } from "@/lib/orders"
-import { sendAbandonedCartEmail, sendOrderEmail, validateOrderInput } from "@/lib/send-order-email"
+import {
+  sendAbandonedCartEmail,
+  sendOrderEmail,
+  sendReengagementEmail,
+  validateOrderInput,
+} from "@/lib/send-order-email"
 
 export const dynamic = "force-dynamic"
 
@@ -56,6 +63,8 @@ export async function POST(request: Request) {
   }
 
   if (pago) return erro(409, "Pedido já pago — use o e-mail de pagamento confirmado.")
+
+  if (body.tipo === "reativacao") return enviarReativacao(txid, order, confirmarReenvio)
 
   const comDesconto = body.tipo === "pendente-desconto"
   if (comDesconto && (order.items?.length ?? 0) < MIN_PRODUTOS_COMBO) {
@@ -101,6 +110,37 @@ async function enviarPedidoPendente(
     await kvSetNx(abandonSentKey(txid), "manual", SENT_TTL_SECONDS)
   } catch (e) {
     console.error("[MANUAL EMAIL] e-mail enviado, mas falhou ao registrar no KV:", txid, e)
+  }
+
+  return NextResponse.json({ ok: true, enviadoEm })
+}
+
+// Lead frio: template sem cobrança, botão pra loja. Trava própria — o cliente
+// quase sempre já recebeu o e-mail de pendente antes deste.
+async function enviarReativacao(txid: string, order: StoredOrder, confirmarReenvio: boolean) {
+  const jaEm = await kvGet(reativacaoManualKey(txid))
+  if (jaEm && !confirmarReenvio) {
+    return erro(409, "Esse cliente já recebeu este e-mail.", {
+      jaEnviado: { automatico: false, manualEm: jaEm },
+    })
+  }
+
+  const lockKey = reativacaoManualLockKey(txid)
+  if (!(await kvSetNx(lockKey, "1", LOCK_TTL_SECONDS))) {
+    return erro(429, "Já tem um envio em andamento pra esse pedido. Aguarde um minuto e tente de novo.")
+  }
+
+  const result = await sendReengagementEmail(order, { ctaHref: MANUAL_CTA_HREF })
+  if (!result.ok) {
+    await kvDel(lockKey).catch(() => {})
+    return erro(result.status, result.error)
+  }
+
+  const enviadoEm = new Date().toISOString()
+  try {
+    await kvSet(reativacaoManualKey(txid), enviadoEm)
+  } catch (e) {
+    console.error("[MANUAL EMAIL] reativação enviada, mas falhou ao registrar no KV:", txid, e)
   }
 
   return NextResponse.json({ ok: true, enviadoEm })

@@ -57,6 +57,7 @@ const podeEnviarEmail = (o: AdminOrder) => Boolean(o.customer?.email)
 const MODELOS = {
   abandonado: "Pedido pendente",
   "pendente-desconto": "Pedido pendente com 10% de desconto",
+  reativacao: "Reativar lead frio (sem cobrar pagamento)",
   pago: "Pagamento confirmado",
 } as const
 type TipoEmail = keyof typeof MODELOS
@@ -65,7 +66,8 @@ type TipoEmail = keyof typeof MODELOS
 // diferentes (é a regra do cupom COMBO10 em lib/coupons).
 function modelosDo(o: AdminOrder): TipoEmail[] {
   if (o.status === "pago") return ["pago"]
-  return (o.items?.length ?? 0) >= 2 ? ["abandonado", "pendente-desconto"] : ["abandonado"]
+  const comDesconto: TipoEmail[] = (o.items?.length ?? 0) >= 2 ? ["pendente-desconto"] : []
+  return ["abandonado", ...comDesconto, "reativacao"]
 }
 
 export function OrdersPanel({ orders, kvOk }: { orders: AdminOrder[]; kvOk: boolean }) {

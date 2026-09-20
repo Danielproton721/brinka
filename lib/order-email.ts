@@ -386,6 +386,96 @@ export function renderShippedEmail(order: OrderEmailInput, trackingCode: string)
   return { subject, html };
 }
 
+// E-mail de REATIVAÇÃO — pro lead que esfriou (abandonou faz dias e já não
+// adianta falar "finalize agora"). Aqui o assunto não cobra pagamento: lembra
+// do brinquedo, mostra o que ele faz e convida a voltar pra loja.
+export function renderReengagementEmail(order: OrderEmailInput, opts?: { ctaHref?: string }) {
+  const firstName = (order.customer.name || "").trim().split(" ")[0] || "Cliente";
+  const absoluteImg = (src?: string) =>
+    src ? (src.startsWith("http") ? src : `${BRAND_TRACKING_URL}${src.startsWith("/") ? "" : "/"}${src}`) : "";
+
+  const rawCta = (opts?.ctaHref ?? "").trim();
+  const shopHref = rawCta
+    ? (/^https?:\/\//i.test(rawCta) ? rawCta : `${BRAND_TRACKING_URL}${rawCta.startsWith("/") ? "" : "/"}${rawCta}`)
+    : BRAND_TRACKING_URL;
+
+  const primeiro = order.items[0];
+  const fotoItem = primeiro?.image
+    ? `<img src="${escapeHtml(absoluteImg(primeiro.image))}" width="220" height="220" alt="${escapeHtml(primeiro.name)}" style="display:block;margin:0 auto;width:220px;height:220px;max-width:100%;border-radius:14px;border:1px solid ${C.line};object-fit:cover;" />`
+    : "";
+
+  // Só o que o produto faz de fato — nada de número inventado.
+  const beneficios = [
+    "Engole os carrinhos pela boca do dinossauro",
+    "Abre em pista dupla com 2 lançadores",
+    "Fecha de novo e guarda tudo dentro",
+    "Vem com 6 carrinhos de metal",
+  ]
+    .map(
+      (texto) => `
+        <tr>
+          <td width="22" style="padding:5px 0;vertical-align:top;color:${C.accent};font-size:14px;font-weight:800;">›</td>
+          <td style="padding:5px 0;color:${C.text};font-size:13px;line-height:1.45;">${escapeHtml(texto)}</td>
+        </tr>`,
+    )
+    .join("");
+
+  const subject = `${firstName}, o caminhão dinossauro ainda está te esperando 🦖`;
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /><title>${escapeHtml(subject)}</title></head>
+<body style="margin:0;padding:0;background:${C.bg};font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">O brinquedo que engole carrinhos e vira pista continua disponível.</div>
+  <div style="max-width:600px;margin:0 auto;background:${C.card};">
+    <div style="background:${C.accent};height:5px;"></div>
+    <div style="background:${C.card};padding:24px 32px 20px;text-align:center;border-bottom:1px solid ${C.lineSoft};">
+      ${brandHeader()}
+      <p style="margin:9px 0 0;font-size:11px;color:${C.mutedSoft};letter-spacing:1.2px;text-transform:uppercase;">${BRAND_TAGLINE}</p>
+    </div>
+
+    <div style="background:${C.cardSofter};padding:26px 30px 22px;text-align:center;border-bottom:1px solid ${C.line};">
+      <h1 style="margin:0 0 8px;font-size:20px;color:${C.primary};font-weight:800;line-height:1.3;">
+        ${escapeHtml(firstName)}, esse aqui ainda está te esperando
+      </h1>
+      <p style="margin:0 0 16px;font-size:13px;color:${C.muted};line-height:1.5;">
+        Você deu uma olhada no caminhão dinossauro e acabou não levando. Ele continua disponível, com frete grátis para todo o Brasil.
+      </p>
+      ${fotoItem}
+    </div>
+
+    <div style="padding:22px 30px 6px;">
+      <p style="margin:0 0 10px;font-size:11px;font-weight:800;color:${C.primary};letter-spacing:1.2px;text-transform:uppercase;">Por que a criançada não larga</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        ${beneficios}
+      </table>
+    </div>
+
+    <div style="padding:18px 30px 26px;text-align:center;">
+      <a href="${escapeHtml(shopHref)}" style="display:block;background:${C.accent};color:${C.primary};text-decoration:none;padding:0 18px;border-radius:999px;font-size:15px;font-weight:800;line-height:56px;min-height:56px;box-shadow:0 8px 18px rgba(255,90,31,0.32);letter-spacing:0.4px;text-transform:uppercase;">
+        Ver o brinquedo
+      </a>
+      <p style="margin:12px 0 0;font-size:12px;color:${C.muted};line-height:1.5;">
+        Se decidir levar, o cupom <strong style="color:${C.accent};">${CUPOM_PADRAO}</strong> dá 5% de desconto no fechamento.
+      </p>
+    </div>
+
+    <div style="background:${C.dark};padding:26px 32px;text-align:center;">
+      <div style="display:inline-block;background:#ffffff;border-radius:14px;padding:9px 15px;">
+        ${brandHeader()}
+      </div>
+      <p style="margin:12px 0 0;font-size:11px;color:${C.mutedSoft};line-height:1.45;">
+        Caminhões, pistas e brinquedos para muita hora de brincadeira.
+      </p>
+      <p style="margin:10px 0 0;font-size:11px;color:#8a8a8a;">© ${new Date().getFullYear()} ${BRAND_NAME}. Todos os direitos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  return { subject, html };
+}
+
 export type AbandonedEmailOptions = {
   // Link do botão; sem valor vai pro /checkout, como o automático sempre fez.
   ctaHref?: string

@@ -8,6 +8,7 @@ import { Resend } from "resend";
 import {
   renderOrderConfirmationEmail,
   renderAbandonedCartEmail,
+  renderReengagementEmail,
   renderShippedEmail,
   type OrderEmailInput,
   type AbandonedEmailOptions,
@@ -98,6 +99,38 @@ export async function sendAbandonedCartEmail(
     return { ok: true, id: result.data?.id ?? null };
   } catch (err: any) {
     console.error("[ABANDONED EMAIL] Falha inesperada:", err);
+    return { ok: false, error: err?.message || "Falha ao enviar.", status: 500 };
+  }
+}
+
+// E-mail de REATIVAÇÃO (lead frio). Mesmo Resend, template sem cobrança.
+export async function sendReengagementEmail(
+  order: OrderEmailInput,
+  opts?: { ctaHref?: string },
+): Promise<SendOrderEmailResult> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.error("[REENGAGEMENT EMAIL] RESEND_API_KEY ausente.");
+    return { ok: false, error: "Servidor de e-mail não configurado.", status: 500 };
+  }
+  const fromAddress = process.env.RESEND_FROM_EMAIL || "BRINKA Brinquedos <suportepedidos@brinkabrinquedos.shop>";
+  try {
+    const { subject, html } = renderReengagementEmail(order, opts);
+    const resend = new Resend(apiKey);
+    const result = await resend.emails.send({
+      from: fromAddress,
+      to: [order.customer.email],
+      subject,
+      html,
+      replyTo: process.env.RESEND_REPLY_TO || undefined,
+    });
+    if (result.error) {
+      console.error("[REENGAGEMENT EMAIL] Resend error:", result.error);
+      return { ok: false, error: result.error.message || "Falha ao enviar.", status: 502 };
+    }
+    return { ok: true, id: result.data?.id ?? null };
+  } catch (err: any) {
+    console.error("[REENGAGEMENT EMAIL] Falha inesperada:", err);
     return { ok: false, error: err?.message || "Falha ao enviar.", status: 500 };
   }
 }

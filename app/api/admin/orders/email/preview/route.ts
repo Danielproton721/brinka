@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import { isAuthed } from "@/lib/admin-auth"
 import { MANUAL_CTA_COMBO, MANUAL_CTA_HREF, OFERTA_COMBO, isTipoEmailManual } from "@/lib/manual-email"
-import { renderAbandonedCartEmail, renderOrderConfirmationEmail } from "@/lib/order-email"
+import { renderAbandonedCartEmail, renderOrderConfirmationEmail, renderReengagementEmail } from "@/lib/order-email"
 import { getOrder } from "@/lib/order-store"
 import { validateOrderInput } from "@/lib/send-order-email"
 
@@ -28,9 +28,11 @@ export async function GET(request: Request) {
   const { subject, html } =
     tipo === "pago"
       ? renderOrderConfirmationEmail(order)
-      : tipo === "pendente-desconto"
-        ? renderAbandonedCartEmail(order, { ctaHref: MANUAL_CTA_COMBO, oferta: OFERTA_COMBO })
-        : renderAbandonedCartEmail(order, { ctaHref: MANUAL_CTA_HREF })
+      : tipo === "reativacao"
+        ? renderReengagementEmail(order, { ctaHref: MANUAL_CTA_HREF })
+        : tipo === "pendente-desconto"
+          ? renderAbandonedCartEmail(order, { ctaHref: MANUAL_CTA_COMBO, oferta: OFERTA_COMBO })
+          : renderAbandonedCartEmail(order, { ctaHref: MANUAL_CTA_HREF })
 
   if (params.get("formato") === "json") {
     return NextResponse.json({ ok: true, para: order.customer.email, assunto: subject })

@@ -4,7 +4,9 @@ import { kvGet } from "./kv-store"
 // "abandonado" = pedido pendente (não pago). "pendente-desconto" = o mesmo, com
 // desconto pra quem montou o pedido com os dois carrinhos. "pago" = pagamento
 // confirmado.
-export const TIPOS_EMAIL_MANUAL = ["abandonado", "pendente-desconto", "pago"] as const
+// "reativacao" = lead frio (abandonou faz dias): não cobra pagamento, lembra do
+// brinquedo e convida a voltar pra loja.
+export const TIPOS_EMAIL_MANUAL = ["abandonado", "pendente-desconto", "reativacao", "pago"] as const
 export type TipoEmailManual = (typeof TIPOS_EMAIL_MANUAL)[number]
 
 export function isTipoEmailManual(v: unknown): v is TipoEmailManual {
@@ -29,6 +31,10 @@ export const abandonManualLockKey = (txid: string) => `abandon:manual:lock:${txi
 export const confirmacaoAutoKey = (txid: string) => `emailed:${txid}`
 export const pagoManualKey = (txid: string) => `email:pago:manual:${txid}`
 export const pagoManualLockKey = (txid: string) => `email:pago:manual:lock:${txid}`
+// A reativação tem trava própria: ela é mandada DEPOIS do e-mail de pendente,
+// então não faz sentido avisar "esse cliente já recebeu" por causa do outro.
+export const reativacaoManualKey = (txid: string) => `email:reativacao:manual:${txid}`
+export const reativacaoManualLockKey = (txid: string) => `email:reativacao:manual:lock:${txid}`
 
 async function lerOuNull(key: string): Promise<string | null> {
   try {
@@ -38,8 +44,12 @@ async function lerOuNull(key: string): Promise<string | null> {
   }
 }
 
+// Último envio manual em pedido não pago (pendente ou reativação).
 export async function getEmailManualEm(txid: string): Promise<string | null> {
-  return lerOuNull(abandonManualKey(txid))
+  const datas = (await Promise.all([lerOuNull(abandonManualKey(txid)), lerOuNull(reativacaoManualKey(txid))]))
+    .filter((d): d is string => Boolean(d) && !Number.isNaN(Date.parse(d as string)))
+    .sort()
+  return datas.length ? datas[datas.length - 1] : null
 }
 
 export async function getEmailsPagoEm(txid: string): Promise<{ automaticoEm: string | null; manualEm: string | null }> {
