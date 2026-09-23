@@ -4,12 +4,13 @@
 
 import { kvConfigured, kvGetJSON, kvSetJSON } from "@/lib/kv-store"
 
-export type GatewayId = "pagou" | "medusa" | "centurion"
+export type GatewayId = "pagou" | "medusa" | "centurion" | "beehive"
 
 export const GATEWAYS: { id: GatewayId; label: string }[] = [
   { id: "pagou", label: "Pagou.ai" },
   { id: "medusa", label: "MedusaPay" },
   { id: "centurion", label: "CenturionPay" },
+  { id: "beehive", label: "Beehive Pay" },
 ]
 
 const KEY = "active-gateway"
@@ -18,7 +19,7 @@ const DEFAULT: GatewayId = "pagou"
 const TTL = 60 * 60 * 24 * 365
 
 export function isGatewayId(v: unknown): v is GatewayId {
-  return v === "pagou" || v === "medusa" || v === "centurion"
+  return v === "pagou" || v === "medusa" || v === "centurion" || v === "beehive"
 }
 
 export async function getActiveGateway(): Promise<GatewayId> {

@@ -4,6 +4,7 @@ import { getTxGateway, isGatewayId, getActiveGateway, type GatewayId } from "@/l
 import { POST as postPagou } from "../pagouai/route"
 import { POST as postMedusa } from "../medusa/route"
 import { POST as postCenturion } from "../centurion/route"
+import { POST as postBeehive } from "../beehive/route"
 
 export const dynamic = "force-dynamic"
 
@@ -100,6 +101,7 @@ export async function POST(request: Request) {
     pagou: postPagou,
     medusa: postMedusa,
     centurion: postCenturion,
+    beehive: postBeehive,
   }
 
   try {

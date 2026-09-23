@@ -49,6 +49,7 @@ export async function GET() {
         { label: "MedusaPay — chave", envs: ["MEDUSAPAY_SECRET_KEY"], set: has("MEDUSAPAY_SECRET_KEY"), level: activeGateway === "medusa" ? "req" : "opt", hint: "A mk_live_... da MedusaPay nova (Configurações → API e Integrações)." },
         { label: "MedusaPay — segredo do webhook", envs: ["MEDUSAPAY_WEBHOOK_SECRET"], set: has("MEDUSAPAY_WEBHOOK_SECRET"), level: "opt", hint: "Só se cadastrar o webhook no painel da MedusaPay." },
         { label: "CenturionPay — chave", envs: ["CENTURION_API_KEY"], set: has("CENTURION_API_KEY"), level: activeGateway === "centurion" ? "req" : "opt", hint: "Só se usar CenturionPay." },
+        { label: "Beehive Pay — chave secreta", envs: ["BEEHIVE_SECRET_KEY"], set: has("BEEHIVE_SECRET_KEY"), level: activeGateway === "beehive" ? "req" : "opt", hint: "Chave secreta da Beehive (Configurações → Credenciais de API)." },
       ],
     },
     {

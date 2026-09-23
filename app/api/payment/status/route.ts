@@ -4,6 +4,7 @@ import { getPaymentStatus, isGatewayPaidStatus, recordPaymentStatus } from "@/li
 import { getTxGateway } from "@/lib/gateways/active";
 import { getStatusMedusa } from "@/lib/gateways/medusa";
 import { getStatusCenturion } from "@/lib/gateways/centurion";
+import { getStatusBeehive } from "@/lib/gateways/beehive";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +33,13 @@ export async function GET(request: Request) {
   // Pagou.ai não é marcado por txid → cai no retorno padrão (status do KV).
   try {
     const gw = await getTxGateway(txid);
-    if (gw === "medusa" || gw === "centurion") {
-      const r = gw === "medusa" ? await getStatusMedusa(txid) : await getStatusCenturion(txid);
+    if (gw === "medusa" || gw === "centurion" || gw === "beehive") {
+      const r =
+        gw === "medusa"
+          ? await getStatusMedusa(txid)
+          : gw === "centurion"
+            ? await getStatusCenturion(txid)
+            : await getStatusBeehive(txid);
       if (r.ok && r.paid) {
         await recordPaymentStatus({
           event: `${gw}.poll`,

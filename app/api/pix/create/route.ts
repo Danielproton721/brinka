@@ -14,6 +14,7 @@ import type { OrderEmailItem } from "@/lib/order-email";
 import { getActiveGateway, markTxGateway } from "@/lib/gateways/active";
 import { createPixMedusa, medusaConfigured } from "@/lib/gateways/medusa";
 import { createPixCenturion, centurionConfigured } from "@/lib/gateways/centurion";
+import { createPixBeehive, beehiveConfigured } from "@/lib/gateways/beehive";
 import { qstashConfigured, scheduleDelayedCall, abandonedSig } from "@/lib/qstash";
 
 export const dynamic = "force-dynamic";
@@ -302,6 +303,60 @@ export async function POST(request: Request) {
       txid,
       orderCode,
       gateway: "centurion",
+      qrCode: result.qrCode,
+      qrCodeImage: result.qrCodeImage ?? null,
+      expiresAt: result.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      status: result.paymentStatus ?? "pending",
+      amount: value,
+      phone: phoneDigits,
+    });
+  }
+
+  if (activeGateway === "beehive") {
+    if (!beehiveConfigured()) {
+      console.error("[PIX API] BEEHIVE_SECRET_KEY ausente no ambiente.");
+      return NextResponse.json({ error: "Erro interno: Beehive Pay não configurada." }, { status: 500 });
+    }
+    const postbackUrl = appBaseUrl ? `${appBaseUrl}/api/webhooks/beehive` : undefined;
+    const result = await createPixBeehive({
+      amountCents,
+      name: name.trim(),
+      email: email.trim(),
+      cpfDigits,
+      phoneDigits,
+      ip: buyerIp,
+      title: title || "BRINKA Brinquedos",
+      postbackUrl,
+    });
+    if (!result.ok) {
+      console.error(`[PIX/Beehive] Erro (${result.status}):`, result.error);
+      if (result.status === 401) {
+        return NextResponse.json({ error: "Chave de autenticação inválida na Beehive Pay." }, { status: 401 });
+      }
+      if (result.status === 400 || result.status === 422) {
+        return NextResponse.json({ error: result.error || "Dados recusados pela Beehive Pay." }, { status: 400 });
+      }
+      return NextResponse.json({ error: result.error || "Falha na Beehive Pay.", gateway: result.raw }, { status: 502 });
+    }
+    if (!result.qrCode) {
+      return NextResponse.json({ error: "Beehive Pay não retornou QR Code PIX válido." }, { status: 502 });
+    }
+    const txid = result.txid ?? null;
+    let orderCode: string | null = null;
+    if (txid) {
+      orderCode = await persistNewOrder(String(txid), body?.order ?? {}, Number(value), {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phoneDigits,
+        cpf: cpfDigits,
+      });
+      await markTxGateway(String(txid), "beehive");
+      await scheduleAbandonedCheck(appBaseUrl, String(txid));
+    }
+    return NextResponse.json({
+      txid,
+      orderCode,
+      gateway: "beehive",
       qrCode: result.qrCode,
       qrCodeImage: result.qrCodeImage ?? null,
       expiresAt: result.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),

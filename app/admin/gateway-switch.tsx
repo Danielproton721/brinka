@@ -8,6 +8,7 @@ const OPTIONS: { id: GatewayId; label: string }[] = [
   { id: "pagou", label: "Pagou.ai" },
   { id: "medusa", label: "MedusaPay" },
   { id: "centurion", label: "CenturionPay" },
+  { id: "beehive", label: "Beehive Pay" },
 ]
 
 export function GatewaySwitch({ initial, kvOk }: { initial: GatewayId; kvOk: boolean }) {
