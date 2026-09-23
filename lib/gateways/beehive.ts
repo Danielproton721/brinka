@@ -26,9 +26,14 @@ export function beehiveConfigured(): boolean {
   return Boolean(process.env.BEEHIVE_SECRET_KEY)
 }
 
-function authHeader(): string {
+// A doc se contradiz no esquema do header: a página de Autenticação manda
+// "Basic <base64(SECRET_KEY:x)>" (com exemplo em Node), o llms.txt manda o mesmo
+// base64 com "Bearer". Tentamos Basic e, se vier 401, repetimos com Bearer.
+const ESQUEMAS = ["Basic", "Bearer"] as const
+
+function authHeader(esquema: string): string {
   const secret = (process.env.BEEHIVE_SECRET_KEY || "").trim()
-  return `Bearer ${Buffer.from(`${secret}:x`).toString("base64")}`
+  return `${esquema} ${Buffer.from(`${secret}:x`).toString("base64")}`
 }
 
 // Allowlist pura (default-DENY): em dinheiro, só libera com status afirmativo de
@@ -70,25 +75,31 @@ export interface BeehivePixResult {
 }
 
 async function call(method: "GET" | "POST", path: string, body?: unknown) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: {
-      authorization: authHeader(),
-      accept: "application/json",
-      "user-agent": "BRINKA/1.0",
-      ...(body ? { "content-type": "application/json" } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    cache: "no-store",
-  })
-  const raw = await res.text()
-  let data: any = null
-  try {
-    data = raw ? JSON.parse(raw) : null
-  } catch {
-    data = null
+  let ultima!: { res: Response; raw: string; data: any }
+  for (const esquema of ESQUEMAS) {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers: {
+        authorization: authHeader(esquema),
+        accept: "application/json",
+        "user-agent": "BRINKA/1.0",
+        ...(body ? { "content-type": "application/json" } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store",
+    })
+    const raw = await res.text()
+    let data: any = null
+    try {
+      data = raw ? JSON.parse(raw) : null
+    } catch {
+      data = null
+    }
+    ultima = { res, raw, data }
+    // 401 não cria nada do outro lado, então repetir com o outro esquema é seguro.
+    if (res.status !== 401) break
   }
-  return { res, raw, data }
+  return ultima
 }
 
 // O openapi descreve `pix` como string e a nota da doc fala em campo `qrCode`,
