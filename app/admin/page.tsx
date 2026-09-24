@@ -6,6 +6,7 @@ import { getActiveGateway } from "@/lib/gateways/active"
 import { AdminLogin } from "./admin-login"
 import { AdminShell } from "./admin-shell"
 import { GatewaySwitch } from "./gateway-switch"
+import { AdminThemeProvider } from "./theme"
 
 export const dynamic = "force-dynamic"
 
@@ -24,7 +25,11 @@ export default async function AdminPage() {
   }
 
   if (!(await isAuthed())) {
-    return <AdminLogin brand={adminConfig.brand} />
+    return (
+      <AdminThemeProvider>
+        <AdminLogin brand={adminConfig.brand} />
+      </AdminThemeProvider>
+    )
   }
 
   const kvOk = kvConfigured()
@@ -34,15 +39,17 @@ export default async function AdminPage() {
   const activeGateway = await getActiveGateway()
 
   return (
-    <AdminShell
-      brand={adminConfig.brand}
-      modules={adminConfig.modules}
-      columns={adminConfig.catalog.columns}
-      kvOk={kvOk}
-      orders={orders}
-      catalog={catalog}
-      pending={pending}
-      gatewaySwitch={<GatewaySwitch initial={activeGateway} kvOk={kvOk} />}
-    />
+    <AdminThemeProvider>
+      <AdminShell
+        brand={adminConfig.brand}
+        modules={adminConfig.modules}
+        columns={adminConfig.catalog.columns}
+        kvOk={kvOk}
+        orders={orders}
+        catalog={catalog}
+        pending={pending}
+        gatewaySwitch={<GatewaySwitch initial={activeGateway} kvOk={kvOk} />}
+      />
+    </AdminThemeProvider>
   )
 }

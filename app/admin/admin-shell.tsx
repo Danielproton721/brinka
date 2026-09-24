@@ -13,6 +13,7 @@ import { RelayPanel } from "./relay-panel"
 import { SetupStatus } from "./setup-status"
 import { EmailPanel } from "./email-panel"
 import { WhatsAppSwitch } from "./whatsapp-switch"
+import { BotaoTema } from "./theme"
 
 type Modules = { orders: boolean; products: boolean; relay?: boolean }
 type Tab = "orders" | "products" | "relay" | "email" | "keys"
@@ -63,6 +64,7 @@ export function AdminShell({
           </div>
           <div className="flex items-center justify-between gap-3 sm:justify-end">
             {modules.orders && <OnlineCount />}
+            <BotaoTema />
             <LogoutButton />
           </div>
         </div>
