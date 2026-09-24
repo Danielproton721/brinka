@@ -336,7 +336,12 @@ export async function POST(request: Request) {
       if (result.status === 400 || result.status === 422) {
         return NextResponse.json({ error: result.error || "Dados recusados pela Beehive Pay." }, { status: 400 });
       }
-      return NextResponse.json({ error: result.error || "Falha na Beehive Pay.", gateway: result.raw }, { status: 502 });
+      // 424 = a adquirente da Beehive não devolveu o QR. O detalhe fica no log;
+      // o cliente vê um recado que ele consegue agir em cima.
+      return NextResponse.json(
+        { error: "Não conseguimos gerar o PIX agora. Tente de novo em alguns instantes." },
+        { status: 502 },
+      );
     }
     if (!result.qrCode) {
       return NextResponse.json({ error: "Beehive Pay não retornou QR Code PIX válido." }, { status: 502 });
