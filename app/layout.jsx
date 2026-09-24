@@ -2,6 +2,7 @@ import Script from "next/script";
 import { Bricolage_Grotesque, Hanken_Grotesk } from "next/font/google";
 import { CartProvider } from "@/lib/cart-context";
 import { CartDrawer } from "@/components/store/cart-drawer";
+import { WhatsAppFloat } from "@/components/WhatsApp";
 import "./globals.css";
 
 // Tag base do Google Ads. Sem a env definida, nada é carregado — mesma
@@ -51,6 +52,7 @@ gtag('config', '${GOOGLE_ADS_ID}');`}
         <CartProvider>
           {children}
           <CartDrawer />
+          <WhatsAppFloat />
         </CartProvider>
       </body>
     </html>

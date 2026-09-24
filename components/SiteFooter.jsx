@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Logo from "./Logo";
 import { PaymentFlags } from "./store/payment-flags";
+import { WhatsAppFooterLink } from "./WhatsApp";
 
 export default function SiteFooter() {
   return (
@@ -30,6 +31,7 @@ export default function SiteFooter() {
             <Link href="/politica-de-trocas-e-devolucoes">Trocas e devoluções</Link>
             <Link href="/politica-de-garantia">Garantia</Link>
             <Link href="/perguntas-frequentes">Perguntas frequentes</Link>
+            <WhatsAppFooterLink />
           </div>
           <div className="fcol">
             <h4>Receba as ofertas</h4>

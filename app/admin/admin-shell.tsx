@@ -12,6 +12,7 @@ import { ProductsPanel } from "./products-panel"
 import { RelayPanel } from "./relay-panel"
 import { SetupStatus } from "./setup-status"
 import { EmailPanel } from "./email-panel"
+import { WhatsAppSwitch } from "./whatsapp-switch"
 
 type Modules = { orders: boolean; products: boolean; relay?: boolean }
 type Tab = "orders" | "products" | "relay" | "email" | "keys"
@@ -69,6 +70,8 @@ export function AdminShell({
         {modules.orders && <VisitorsHistory />}
 
         {gatewaySwitch}
+
+        <WhatsAppSwitch />
 
         {tabs.length > 1 && (
           <div className="mb-5 flex w-full rounded-xl border border-border bg-card p-1 sm:inline-flex sm:w-auto">
