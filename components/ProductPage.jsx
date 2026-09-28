@@ -334,6 +334,14 @@ export default function ProductPage({ product }) {
           </nav>
           <div className="spacer" />
           <div className="icons">
+            <Link href="/rastrear-pedido" className="track-link" title="Rastrear meu pedido">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 7h13v10H3zM16 10h4l1 3v4h-5" />
+                <circle cx="7" cy="18" r="1.6" />
+                <circle cx="18" cy="18" r="1.6" />
+              </svg>
+              <span>Rastrear pedido</span>
+            </Link>
             <button className="iconbtn" aria-label="Carrinho" onClick={openCart}>
               <CartIcon />
               <span className="cart-count">{totalItems}</span>

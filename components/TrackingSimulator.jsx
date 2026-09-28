@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  LAST_STEP_INDEX,
+  STATUS_TITLES as statusTitles,
+  STEP_OFFSET_HOURS,
+  progressIndexFromCreated,
+} from "@/lib/tracking-status";
+import {
   CheckCircle2,
   Clock3,
   Copy,
@@ -23,21 +29,6 @@ const MAX_RECENT = 5;
 // decorrido desde a compra (savedAt), não de um timer que só avança.
 const PROGRESS_UPDATE_INTERVAL_MS = 60 * 1000;
 
-// Offset em horas, a partir do momento da compra, em que cada step entra
-// como "completo". Ex.: index 3 ("Em transporte") chega 28 h depois e
-// permanece como o status corrente por 9 dias antes do próximo.
-const STEP_OFFSET_HOURS = [
-  0,
-  1,
-  1 + 24,
-  1 + 24 + 3,
-  1 + 24 + 3 + 9 * 24 + 1,
-  1 + 24 + 3 + 9 * 24 + 1 + 5,
-  1 + 24 + 3 + 9 * 24 + 1 + 5 + 6,
-  1 + 24 + 3 + 9 * 24 + 1 + 5 + 6 + 24,
-  1 + 24 + 3 + 9 * 24 + 1 + 5 + 6 + 24 + 3,
-];
-
 const carrierLabels = {
   correios: "Correios",
   fedex: "FedEx",
@@ -46,19 +37,6 @@ const carrierLabels = {
   brinka: "Brinka Entregas",
 };
 
-const statusTitles = [
-  "Pagamento aprovado",
-  "Em preparação",
-  "Postagem preparada",
-  "Em transporte",
-  "Saiu para entrega",
-  "Tentativa de entrega não efetuada",
-  "Pedido voltando para a base de distribuição",
-  "Saiu para entrega",
-  "Entregue",
-];
-
-const LAST_STEP_INDEX = statusTitles.length - 1;
 const ATTEMPT_FAILED_STEP_INDEX = 5;
 const RETURNING_TO_BASE_STEP_INDEX = 6;
 const SECOND_DELIVERY_ATTEMPT_STEP_INDEX = 7;
@@ -136,17 +114,6 @@ function stepDateFromCreated(createdAt, stepIndex) {
   const date = new Date(createdAt);
   date.setHours(date.getHours() + (STEP_OFFSET_HOURS[stepIndex] ?? 0));
   return date;
-}
-
-// Calcula em qual step o pedido está, dado o tempo real decorrido desde a
-// compra. Retorna o último step cuja janela de tempo já foi atingida.
-function progressIndexFromCreated(createdAt, now = new Date()) {
-  const elapsedHours = (now.getTime() - createdAt.getTime()) / 3600000;
-  let reached = 0;
-  for (let i = 0; i < STEP_OFFSET_HOURS.length; i += 1) {
-    if (elapsedHours >= STEP_OFFSET_HOURS[i]) reached = i;
-  }
-  return reached;
 }
 
 function formatDateTime(date) {
@@ -369,7 +336,14 @@ export default function TrackingSimulator() {
 
     if (codeFromUrl.length >= 6) {
       const orderFromUrl = readOrderLookup(codeFromUrl);
-      const createdAt = orderFromUrl?.savedAt ? new Date(orderFromUrl.savedAt) : undefined;
+      // "desde" vem no link do painel /admin (data da compra): sem ele, um
+      // navegador que não fez a compra sortearia a etapa pelo código.
+      const desde = new Date(new URLSearchParams(window.location.search).get("desde") ?? "");
+      const createdAt = orderFromUrl?.savedAt
+        ? new Date(orderFromUrl.savedAt)
+        : Number.isNaN(desde.getTime())
+          ? undefined
+          : desde;
       const cachedResult = storedResults.find((item) => item.code === codeFromUrl);
       const nextResult = cachedResult ?? buildTrackingResult(codeFromUrl, undefined, createdAt);
       const nextResults = cachedResult

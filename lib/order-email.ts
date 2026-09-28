@@ -137,7 +137,7 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
     })
     .join("");
 
-  const trackingHref = `${BRAND_TRACKING_URL}/rastreio-de-pedido?codigo=${encodeURIComponent(order.orderCode)}`;
+  const trackingHref = `${BRAND_TRACKING_URL}/rastrear-pedido?codigo=${encodeURIComponent(order.orderCode)}`;
 
   const subject = `🦖 ${firstName}, pagamento confirmado — pedido ${order.orderCode}`;
 
@@ -324,7 +324,7 @@ export function renderOrderConfirmationEmail(order: OrderEmailInput) {
 // preenchido e um botão que abre a página de rastreio da loja com o código.
 export function renderShippedEmail(order: OrderEmailInput, trackingCode: string) {
   const firstName = (order.customer.name || "").trim().split(" ")[0] || "Cliente";
-  const trackingHref = `${BRAND_TRACKING_URL}/rastreio-de-pedido?codigo=${encodeURIComponent(trackingCode)}`;
+  const trackingHref = `${BRAND_TRACKING_URL}/rastrear-pedido?codigo=${encodeURIComponent(trackingCode)}`;
   const subject = `📦 ${firstName}, seu pedido foi postado! Código ${trackingCode}`;
 
   const html = `<!DOCTYPE html>

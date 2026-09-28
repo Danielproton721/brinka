@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import * as Dialog from "@radix-ui/react-dialog"
-import { CheckCircle2, ExternalLink, Loader2, Mail, Trash2, X } from "lucide-react"
+import { CheckCircle2, Copy, ExternalLink, Loader2, Mail, Trash2, Truck, X } from "lucide-react"
 import type { AdminOrder } from "@/lib/orders"
+import { generateTrackingCode } from "@/lib/tracking-code"
+import { statusRastreio } from "@/lib/tracking-status"
 
 const brl = (v: number) => `R$ ${Number(v || 0).toFixed(2).replace(".", ",")}`
 
@@ -170,6 +172,8 @@ export function OrdersPanel({ orders, kvOk }: { orders: AdminOrder[]; kvOk: bool
                 )}
               </div>
 
+              {o.status === "pago" && <Rastreio pedido={o} />}
+
               <div className="mt-3">
                 <div className="font-semibold text-foreground">{o.customer?.name || "—"}</div>
                 <div className="text-xs text-muted-foreground">{o.customer?.phone || ""}</div>
@@ -248,6 +252,7 @@ export function OrdersPanel({ orders, kvOk }: { orders: AdminOrder[]; kvOk: bool
                     {o.gateway && (
                       <div className="mt-1 text-[11px] text-muted-foreground">{o.gateway}</div>
                     )}
+                    {o.status === "pago" && <Rastreio pedido={o} />}
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-semibold text-foreground">{o.customer?.name || "—"}</div>
@@ -354,6 +359,53 @@ function ApagarPedidoBotao({ pedido, onApagado }: { pedido: AdminOrder; onApagad
       {apagando ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
       Apagar pedido
     </button>
+  )
+}
+
+// Código de rastreio do pedido pago: o mesmo que o cliente recebeu por e-mail
+// (gerado a partir do código do pedido) e a etapa em que ele está agora.
+function Rastreio({ pedido }: { pedido: AdminOrder }) {
+  const codigo = generateTrackingCode(pedido.orderCode || pedido.txid)
+  const [etapa, setEtapa] = useState<string | null>(null)
+  const [copiado, setCopiado] = useState(false)
+
+  // Só depois de montar: a etapa depende da hora atual e mudaria entre o
+  // servidor e o navegador.
+  useEffect(() => setEtapa(statusRastreio(pedido.createdAt)), [pedido.createdAt])
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(codigo)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 1500)
+    } catch {
+      // navegador sem permissão: o código continua visível pra copiar na mão
+    }
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-border bg-background px-2 py-1.5">
+      <div className="flex items-center gap-1.5">
+        <Truck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <a
+          href={`/rastrear-pedido?codigo=${encodeURIComponent(codigo)}${pedido.createdAt ? `&desde=${encodeURIComponent(pedido.createdAt)}` : ""}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-mono text-[11px] font-bold text-foreground hover:underline"
+          title="Abrir a página de rastreio"
+        >
+          {codigo}
+        </a>
+        <button
+          onClick={copiar}
+          title="Copiar código de rastreio"
+          className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+        >
+          {copiado ? <CheckCircle2 className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+        </button>
+      </div>
+      <div className="mt-0.5 text-[11px] text-muted-foreground">{etapa ?? "—"}</div>
+    </div>
   )
 }
 

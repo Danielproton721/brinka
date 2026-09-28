@@ -613,3 +613,9 @@ footer{background:var(--ink);color:#cfc7ba;padding:64px 0 30px;margin-top:10px}
 
 .wa-rodape{display:inline-flex !important;align-items:center;gap:7px}
 .wa-rodape-ico{width:16px;height:16px;flex:none;color:#25d366}
+
+/* Atalho discreto pro rastreio, no cabeçalho da página de venda. */
+.track-link{display:inline-flex;align-items:center;gap:6px;height:42px;padding:0 10px;border-radius:12px;font-size:13px;font-weight:600;color:var(--ink-3);transition:background .2s,color .2s}
+.track-link:hover{background:var(--bg-2);color:var(--ink)}
+.track-link svg{width:18px;height:18px}
+@media(max-width:640px){.track-link span{display:none}.track-link{padding:0 8px}}
