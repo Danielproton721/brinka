@@ -25,6 +25,7 @@ import { PaymentFlags } from '@/components/store/payment-flags';
 import { ReputationSeals } from '@/components/store/reputation-seals';
 import { useCart } from '@/lib/cart-context';
 import { acharCupom } from '@/lib/coupons';
+import { cpfDigits, isValidCpf } from '@/lib/cpf';
 
 const ORDER_LOOKUP_STORAGE_KEY = 'brinka-order-lookup-v1';
 
@@ -737,9 +738,9 @@ function CheckoutContent() {
     }
   }, [items, couponApplied, shippingPrice]);
 
-  const triggerError = (newErrors: Record<string, boolean>) => {
+  const triggerError = (newErrors: Record<string, boolean>, mensagem = 'Preencha os campos obrigatórios') => {
     setErrors(newErrors);
-    setFormError('Preencha os campos obrigatórios');
+    setFormError(mensagem);
     setTimeout(() => {
       setFormError('');
       setErrors({});
@@ -1269,12 +1270,15 @@ function CheckoutContent() {
     const newErrors: Record<string, boolean> = {};
     if (!name.trim()) newErrors.name = true;
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = true;
-    if (cpf.replace(/\D/g, '').length !== 11) newErrors.cpf = true;
+    // Dígitos verificadores, não só a contagem: CPF com número trocado é
+    // recusado pelo gateway lá no PIX, com uma mensagem que não fala do CPF.
+    if (!isValidCpf(cpf)) newErrors.cpf = true;
     const phoneDigits = phone.replace(/\D/g, '');
     if (phoneDigits.length < 10) newErrors.phone = true;
-    
+
     if (Object.keys(newErrors).length > 0) {
-      triggerError(newErrors);
+      const soOCpf = Object.keys(newErrors).length === 1 && newErrors.cpf && cpfDigits(cpf).length === 11;
+      triggerError(newErrors, soOCpf ? 'CPF inválido. Confira os números.' : undefined);
       return;
     }
     
@@ -1632,7 +1636,10 @@ function CheckoutContent() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#8b8378] uppercase tracking-wide mb-1.5">CPF</label>
-                    <input type="text" value={cpf} onChange={handleCpfChange} placeholder="000.000.000-00" className={getInputClass('cpf')} />
+                    <input type="text" inputMode="numeric" value={cpf} onChange={handleCpfChange} placeholder="000.000.000-00" className={getInputClass('cpf')} />
+                    {cpfDigits(cpf).length === 11 && !isValidCpf(cpf) && (
+                      <p className="mt-1 text-xs font-bold text-red-500">CPF inválido — confira os números.</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-[#8b8378] uppercase tracking-wide mb-1.5">Celular</label>
