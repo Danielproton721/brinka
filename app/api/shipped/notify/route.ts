@@ -3,7 +3,7 @@ import { getOrder } from "@/lib/order-store";
 import { isOrderPaid } from "@/lib/orders";
 import { kvConfigured, kvSetNx } from "@/lib/kv-store";
 import { sendShippedEmail, validateOrderInput } from "@/lib/send-order-email";
-import { abandonedSig } from "@/lib/qstash";
+import { abandonedSig, lerParametrosAgendados } from "@/lib/qstash";
 import { generateTrackingCode } from "@/lib/tracking-code";
 
 export const dynamic = "force-dynamic";
@@ -11,11 +11,10 @@ export const dynamic = "force-dynamic";
 // Chamado pelo QStash ~1h após o pagamento ser confirmado. Envia o e-mail de
 // "pedido postado" com o código de rastreio — uma única vez (trava NX).
 async function handle(request: Request) {
-  const url = new URL(request.url);
-  const txid = url.searchParams.get("txid")?.trim();
+  // txid/sig chegam no corpo (formato atual do agendamento) ou na query.
+  const { txid, sig } = await lerParametrosAgendados(request);
   if (!txid) return NextResponse.json({ ok: true, handled: false, reason: "sem-txid" });
 
-  const sig = url.searchParams.get("sig") || "";
   if (sig !== abandonedSig(txid)) {
     return NextResponse.json({ ok: false, error: "assinatura inválida" }, { status: 401 });
   }

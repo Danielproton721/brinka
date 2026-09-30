@@ -738,6 +738,15 @@ function CheckoutContent() {
     }
   }, [items, couponApplied, shippingPrice]);
 
+  // Botão "Concluir pagamento" tocado antes da etapa 3: rola até a etapa aberta
+  // e mostra nela o que falta preencher.
+  const levarParaEtapaAtual = () => {
+    const etapa = currentStep === 1 ? 1 : 2;
+    document.getElementById(`etapa-${etapa}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setFormError(etapa === 1 ? 'Preencha seus dados para continuar.' : 'Preencha o endereço de entrega para continuar.');
+    setTimeout(() => setFormError(''), 6000);
+  };
+
   const triggerError = (newErrors: Record<string, boolean>, mensagem = 'Preencha os campos obrigatórios') => {
     setErrors(newErrors);
     setFormError(mensagem);
@@ -1605,7 +1614,7 @@ function CheckoutContent() {
         <div className="space-y-4">
           
           {/* Sessão 1: Dados Pessoais */}
-          <motion.div layout className={`bg-white border rounded-2xl p-6 shadow-sm transition-all duration-300 ${currentStep === 1 ? 'border-[#ff5a1f] ring-1 ring-[#ff5a1f]' : 'border-[#e6e0d5]'}`}>
+          <motion.div id="etapa-1" layout className={`bg-white border rounded-2xl p-6 shadow-sm transition-all duration-300 ${currentStep === 1 ? 'border-[#ff5a1f] ring-1 ring-[#ff5a1f]' : 'border-[#e6e0d5]'}`}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-extrabold text-[#171310] flex items-center gap-2">
                 <span className={`w-6 h-6 rounded-full text-white flex items-center justify-center text-xs ${currentStep >= 1 ? 'bg-[#ff5a1f]' : 'bg-[#d8d0c2]'}`}>1</span>
@@ -1665,7 +1674,7 @@ function CheckoutContent() {
           </motion.div>
 
           {/* Sessão 2: Endereço de Entrega */}
-          <motion.div layout className={`bg-white border rounded-2xl p-6 shadow-sm transition-all duration-300 ${currentStep === 2 ? 'border-[#ff5a1f] ring-1 ring-[#ff5a1f]' : 'border-[#e6e0d5] opacity-60'}`}>
+          <motion.div id="etapa-2" layout className={`bg-white border rounded-2xl p-6 shadow-sm transition-all duration-300 ${currentStep === 2 ? 'border-[#ff5a1f] ring-1 ring-[#ff5a1f]' : 'border-[#e6e0d5] opacity-60'}`}>
             <div className="flex items-center justify-between mb-5">
               <h2 className={`text-lg font-extrabold flex items-center gap-2 ${currentStep >= 2 ? 'text-[#171310]' : 'text-[#a89f92]'}`}>
                 <span className={`w-6 h-6 rounded-full text-white flex items-center justify-center text-xs ${currentStep >= 2 ? 'bg-[#ff5a1f]' : 'bg-[#d8d0c2]'}`}>2</span>
@@ -2094,8 +2103,16 @@ function CheckoutContent() {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => {
+                // No celular este botão aparece no resumo antes de a pessoa
+                // preencher os dados. Antes, o toque tentava gerar o PIX sem
+                // dados, a recusa aparecia dentro da etapa 3 (fechada) e o botão
+                // parecia não fazer nada. Agora leva até a etapa que falta.
+                if (currentStep < 3) {
+                  levarParaEtapaAtual();
+                  return;
+                }
                 if (payMethod === 'pix') handlePixSubmit();
                 else if (payMethod === 'card') handleCardSubmit();
               }}
